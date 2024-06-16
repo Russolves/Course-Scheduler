@@ -1,5 +1,7 @@
 import scrapy
-from scrapy.crawler import CrawlerProcess
+from scrapy.crawler import CrawlerRunner
+from scrapy.utils.log import configure_logging
+from twisted.internet import reactor, defer
 from urllib.parse import quote_plus
 import re
 import os
@@ -52,10 +54,17 @@ class Reference_Spider(scrapy.Spider):
             course_dict[clean_name] = course_link # Push into dictionary
 
 # Method to run spider
-def ref_spider():
-    process = CrawlerProcess()
-    process.crawl(Reference_Spider)
-    process.start()
+def run_spiders(spiders):
+    configure_logging()
+    runner = CrawlerRunner()
+
+    @defer.inlineCallbacks
+    def crawl():
+        for spider in spiders:
+            yield runner.crawl(spider)
+        reactor.stop()
+    crawl()
+    reactor.run() # script will block here until all crawling jobs are finished
 
 # Method to update course_reference collection
 def update_courseReference(client):
@@ -70,7 +79,8 @@ def update_courseReference(client):
             update = {
                 "$set": {
                     "reference":j,
-                    "course_name":course_reference[j]
+                    "course_name":course_reference[j],
+                    "course_link":course_dict[course_reference[j]]
                 }
             }
             result = collection.update_one(filter, update, upsert = True) # Upsert into course_reference
@@ -80,15 +90,59 @@ def update_courseReference(client):
     except Exception as e:
         print(f"An exception has occured during writing process into course_reference collection:\n{e}")
 
+# Spider for parsing course catalog details (credit hours, when class is offered etc.)
+class Catalog_Spider(scrapy.Spider):
+    name = 'catalog_spider'
+    try:
+        client = connection()
+        db = client["course_database"]
+        collection = db['course_reference']
+        cursor = collection.find({}, {"_id": 0, "course_name":1, "course_link":1})
+        documents = list(cursor)
+        start_urls = []
+        for entry in documents:
+            start_urls.append(entry['course_link'])
+    except Exception as e:
+        print("An exception occurred during establishing mongodb connection in Catalog Spider")
+
+    def parse( self, response ):
+        r = response.css('td.block_content')
+        course_name = r.css('h1#course_preview_title::text').get()
+        course_text = response.xpath('//td[@class="block_content"]/text()').getall()[2].strip() # retrieve main body text
+        value_tuple = parse_text(course_text)
+        course_catalog[course_name] = value_tuple
+
+def parse_text(text):
+    credits_ls = [] # return this as first element of tuple
+    text = text.lower()
+    # parsing for credit hours
+    creditHours_start = text.index("credit hours: ")
+    creditHours_end = text.index(". ")
+    credit_hours = text[creditHours_start + len("credit hours: "):creditHours_end]
+    if "to" in credit_hours:
+        first = credit_hours[:credit_hours.index('to ')]
+        second = credit_hours[credit_hours.index('to ') + len('to '):]
+        credits_ls.append(int(first[:first.index('.00')]))
+        credits_ls.append(int(second[:second.index('.00')]))
+    else:
+        credits_ls.append(int(credit_hours[:credit_hours.index('.00')])) # convert credits to int
+    # parsing for time(s) offered
+    times = text[text.index('typically offered ') + len('typically offered '):-1]
+    times_ls = times.split(' ') # return this as second element of tuple
+    return tuple([credits_ls, times_ls])
+
 # Main Script
 if __name__ == "__main__":
-    client = connection() # Establish connection
-    course_ls = [] # list of course_names stored here (7190)
+    client = connection() # Establish initial connection
+    # Some global variables
+    course_ls = [] # list of course_names stored here (7190 entries)
     course_dict = {} # { course_name:course_link }
     course_reference = {} # for storing { num:course_name } key-value pairs
+    course_catalog = {} # { course_name:([credits], [times offered])}
 
-    # ref_spider() # spider for crawling references
+    spiders = [Catalog_Spider] # put the spiders you want to run here
+    run_spiders(spiders)
     # update_courseReference(client)
-
+    print(f"COURSE CATALOG: {course_catalog}")
     client.close()
 

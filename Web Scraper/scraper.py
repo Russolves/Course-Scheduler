@@ -90,5 +90,5 @@ if __name__ == "__main__":
     # ref_spider() # spider for crawling references
     # update_courseReference(client)
 
-
+    client.close()
 

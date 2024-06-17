@@ -104,31 +104,38 @@ class Catalog_Spider(scrapy.Spider):
             start_urls.append(entry['course_link'])
     except Exception as e:
         print("An exception occurred during establishing mongodb connection in Catalog Spider")
-
     def parse( self, response ):
         r = response.css('td.block_content')
         course_name = r.css('h1#course_preview_title::text').get()
         course_text = response.xpath('//td[@class="block_content"]/text()').getall()[2].strip() # retrieve main body text
         # will have to check if prerequisite link exists, if so then parsing must change
-        value_tuple = parse_text(course_text)
+        if r.css('a').get() != None:
+            prereq_text = response.xpath('//td[@class="block_content"]/text()').getall()[3].strip() # retrieve "Typically offered section text"
+            value_tuple = parse_text(course_text, prereq_text)
+        else:
+            value_tuple = parse_text(course_text)
         course_catalog[course_name] = value_tuple
 
-def parse_text(text):
+def parse_text(text, prereq_text = None):
     credits_ls = [] # return this as first element of tuple
     text = text.lower()
     # parsing for credit hours
-    creditHours_start = text.index("credit hours: ")
-    creditHours_end = text.index(". ")
-    credit_hours = text[creditHours_start + len("credit hours: "):creditHours_end]
-    if "to" in credit_hours:
-        first = credit_hours[:credit_hours.index('to ')]
-        second = credit_hours[credit_hours.index('to ') + len('to '):]
-        credits_ls.append(int(first[:first.index('.00')]))
-        credits_ls.append(int(second[:second.index('.00')]))
-    else:
-        credits_ls.append(int(credit_hours[:credit_hours.index('.00')])) # convert credits to int
+    if "credit hours: " in text:
+        creditHours_start = text.index("credit hours: ")
+        creditHours_end = text.index(". ")
+        credit_hours = text[creditHours_start + len("credit hours: "):creditHours_end]
+        if "to" in credit_hours:
+            first = credit_hours[:credit_hours.index('to ')]
+            second = credit_hours[credit_hours.index('to ') + len('to '):]
+            credits_ls.append(int(first[:first.index('.00')]))
+            credits_ls.append(int(second[:second.index('.00')]))
+        else:
+            credits_ls.append(int(credit_hours[:credit_hours.index('.00')])) # convert credits to int
     # parsing for time(s) offered
-    times = text[text.index('typically offered ') + len('typically offered '):-1]
+    if prereq_text == None:
+        times = text[text.index('typically offered ') + len('typically offered '):-1]
+    else:
+        times = prereq_text[prereq_text.index("Typically offered ") + len("Typically offered "):-1].lower()
     times_ls = times.split(' ') # return this as second element of tuple
     return tuple([credits_ls, times_ls])
 

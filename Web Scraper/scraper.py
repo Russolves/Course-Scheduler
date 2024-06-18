@@ -156,7 +156,7 @@ def parse_text(course_text):
     return tuple([credits_ls, times_ls]) # ([1.0, 3.0], [fall, spring, summer])
 
 def update_courseCatalog(client):
-    # update entries within mongodb
+    # update entries within mongodb based on course catalog dict
     try:
         db = client['course_database']
         collection = db['course_reference']

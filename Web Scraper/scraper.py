@@ -118,23 +118,63 @@ def parse_text(course_text):
     for entry in course_text:
         if "credit hours: " in entry.strip().lower():
             text = entry.strip().lower()
+            # Function to find the index of '. ' considering possible whitespaces
+            def find_pattern(text):
+                match = re.search(r'\.\s+', text)
+                if match:
+                    return match.start()
+                return -1
             # parsing for credit hours
             creditHours_start = text.index("credit hours: ")
-            creditHours_end = text.index(". ")
+            creditHours_end = find_pattern(text)
+            if creditHours_end == -1:
+                raise ValueError("Pattern '. ' not found in text")
             credit_hours = text[creditHours_start + len("credit hours: "):creditHours_end]
-            if "to" in credit_hours:
-                first = credit_hours[:credit_hours.index('to ')]
-                second = credit_hours[credit_hours.index('to ') + len('to '):]
-                credits_ls.append(int(first[:first.index('.00')]))
-                credits_ls.append(int(second[:second.index('.00')]))
-            else:
-                credits_ls.append(int(credit_hours[:credit_hours.index('.00')])) # convert credits to int
+            if credit_hours[0].isdigit():
+                if "to" in credit_hours:
+                    first = credit_hours[:credit_hours.index('to ')]
+                    second = credit_hours[credit_hours.index('to ') + len('to '):]
+                    credits_ls.append(float(first))
+                    credits_ls.append(float(second))
+                elif "or" in credit_hours:
+                    first = credit_hours[:credit_hours.index('or ')]
+                    second = credit_hours[credit_hours.index('or ') + len('or '):]
+                    credits_ls.append(float(first))
+                    credits_ls.append(float(second))
+                elif "-" in credit_hours:
+                    first = credit_hours[:credit_hours.index("-")]
+                    second = credit_hours[credit_hours.index("-") + 1:]
+                    credits_ls.append(float(first))
+                    credits_ls.append(float(second))
+                else:
+                    credits_ls.append(float(credit_hours))
         if "typically offered " in entry.strip().lower():
             times_text = entry.strip().lower()
             # parsing for time(s) offered
             times = times_text[times_text.index('typically offered ') + len('typically offered '):-1]
             times_ls = times.split(' ') # return this as second element of tuple
-    return tuple([credits_ls, times_ls])
+    return tuple([credits_ls, times_ls]) # ([1.0, 3.0], [fall, spring, summer])
+
+def update_courseCatalog(client):
+    # update entries within mongodb
+    try:
+        db = client['course_database']
+        collection = db['course_reference']
+        for name in course_catalog:
+            filter = {"course_name": name} # use course name as filter
+            update = {
+                "$set": {
+                    "credit_hours":course_catalog[name][0],
+                    "time_offered":course_catalog[name][1]
+                }
+            }
+            result = collection.update_one(filter, update, upsert = True) # Upsert into course_reference
+        print(f"Matched count: {result.matched_count}")
+        print(f"Modified count: {result.modified_count}")
+        print(f"Upserted id: {result.upserted_id}")
+    except Exception as e:
+        print(f"Something went wrong during the process of writing course catalog details to mongodb: {e}")
+    
 
 # Main Script
 if __name__ == "__main__":
@@ -148,6 +188,6 @@ if __name__ == "__main__":
     spiders = [Catalog_Spider] # put the spiders you want to run here
     run_spiders(spiders)
     # update_courseReference(client)
-    print(f"COURSE CATALOG: {course_catalog}")
+    update_courseCatalog(client)
     client.close()
 

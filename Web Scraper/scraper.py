@@ -185,9 +185,9 @@ if __name__ == "__main__":
     course_reference = {} # for storing { num:course_name } key-value pairs
     course_catalog = {} # { course_name:([credits], [times offered])}
 
-    spiders = [Catalog_Spider] # put the spiders you want to run here
+    spiders = [Catalog_Spider] # put the spiders you want to run here (Reference_Spider, Catalog_Spider)
     run_spiders(spiders)
     # update_courseReference(client)
-    update_courseCatalog(client)
+    # update_courseCatalog(client)
     client.close()
 

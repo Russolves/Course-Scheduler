@@ -53,7 +53,7 @@ class Reference_Spider(scrapy.Spider):
             course_link = 'https://catalog.purdue.edu/' + course.css('a::attr(href)').get()
             course_dict[clean_name] = course_link # Push into dictionary
 
-# Method to run spider
+# Method to run multiple spiders
 def run_spiders(spiders):
     configure_logging()
     runner = CrawlerRunner()
@@ -103,7 +103,9 @@ class Catalog_Spider(scrapy.Spider):
         for entry in documents:
             start_urls.append(entry['course_link'])
     except Exception as e:
-        print("An exception occurred during establishing mongodb connection in Catalog Spider")
+        print(f"An exception occurred during establishing mongodb connection in Catalog Spider:{e}")
+    finally:
+        client.close()
     def parse( self, response ):
         r = response.css('td.block_content')
         course_name = r.css('h1#course_preview_title::text').get()
@@ -174,9 +176,32 @@ def update_courseCatalog(client):
         print(f"Upserted id: {result.upserted_id}")
     except Exception as e:
         print(f"Something went wrong during the process of writing course catalog details to mongodb: {e}")
-    
 
-# Main Script
+# Spider for parsing course details page (prerequisites, summary, campus_offered...)
+class Detail_Spider(scrapy.Spider):
+    name = 'detail_spider'
+    # try:
+    #     client = connection()
+    #     db = client['course_database']
+    #     collection = db['course_reference']
+    #     cursor = collection.find({}, {"_id":0, "course_name":1})
+    #     documents = list(cursor)
+    #     start_urls = []
+    #     for entry in documents:
+    #         course_name = entry['course_name']
+    #         course = course_name[:course_name.index(" -")].strip() # parse course name
+    #         course_dept, course_code = course.split(' ')
+    #         url = f"https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in={course_dept}&crse_numb_in={course_code}"
+    #         start_urls.append(url)
+    # except Exception as e:
+    #     print(f"An exception occurred during establishing mongodb connection in Detail Spider:{e}")
+    # finally:
+    #     client.close()
+    start_urls = ['https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BME&crse_numb_in=58300']
+
+    def parse( self, response ):
+        text_all = response.xpath('//td[@class="ntdefault"]/text()').getall() # retrieve all text as ls
+        
 if __name__ == "__main__":
     client = connection() # Establish initial connection
     # Some global variables
@@ -185,7 +210,7 @@ if __name__ == "__main__":
     course_reference = {} # for storing { num:course_name } key-value pairs
     course_catalog = {} # { course_name:([credits], [times offered])}
 
-    spiders = [Catalog_Spider] # put the spiders you want to run here (Reference_Spider, Catalog_Spider)
+    spiders = [Detail_Spider] # put the spiders you want to run here (Reference_Spider, Catalog_Spider)
     run_spiders(spiders)
     # update_courseReference(client)
     # update_courseCatalog(client)

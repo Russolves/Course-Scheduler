@@ -184,12 +184,14 @@ class Detail_Spider(scrapy.Spider):
     #     client = connection()
     #     db = client['course_database']
     #     collection = db['course_reference']
-    #     cursor = collection.find({}, {"_id":0, "course_name":1})
+    #     cursor = collection.find({}, {"_id":0, "course_name":1, "reference":1})
     #     documents = list(cursor)
     #     start_urls = []
     #     for entry in documents:
     #         course_name = entry['course_name']
+    #         reference = entry['reference']
     #         course = course_name[:course_name.index(" -")].strip() # parse course name
+    #         code_reference[course] = reference # push into code reference for use later
     #         course_dept, course_code = course.split(' ')
     #         url = f"https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in={course_dept}&crse_numb_in={course_code}"
     #         start_urls.append(url)
@@ -197,11 +199,42 @@ class Detail_Spider(scrapy.Spider):
     #     print(f"An exception occurred during establishing mongodb connection in Detail Spider:{e}")
     # finally:
     #     client.close()
-    start_urls = ['https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BME&crse_numb_in=58300']
+    start_urls = ['https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=CS&crse_numb_in=42200', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BME&crse_numb_in=58300', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=ASM&crse_numb_in=10500', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=AGEC&crse_numb_in=69900', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BIOL&crse_numb_in=44202']
 
     def parse( self, response ):
-        text_all = response.xpath('//td[@class="ntdefault"]/text()').getall() # retrieve all text as ls
-        
+        course_name = response.xpath('//td[@class="nttitle"]/text()').get()
+        element_all = response.xpath('//td[@class="ntdefault"]').getall()[0] # use this to parse for prerequisites 'and', 'or'
+        prerequisites_tag = '<span class="fieldlabeltext">Prerequisites:'
+        if prerequisites_tag in element_all:
+            prerequisites_text = element_all[element_all.index(prerequisites_tag) + len(prerequisites_tag):element_all.index('</td>')]
+            # print(f"PREREQUISITES: {prerequisites_text}")
+            if "General Requirements:" in prerequisites_text:
+                prerequisites_start = prerequisites_text.index('(')
+                prerequisites_crude = prerequisites_text[prerequisites_start:]
+                # Regex pattern to find courses within <a> tags followed by the course number
+                pattern = r'<a[^>]*>(\w+)</a>\s*(\d{5})'
+                # Find all matches in the section HTML
+                course_crude = re.findall(pattern, prerequisites_crude)
+                courses = [str(entry[0]) + ' ' + str(entry[1]) for entry in course_crude]
+                print(f"COURSES: {courses}")
+                # Regex pattern to find <br>or<br>, OR, and <br>and<br>
+                and_or = r'<br>\s*(or|and)\s*<br>|OR'
+                # Find all matches in the HTML content
+                matches = [match for match in re.findall(and_or, prerequisites_crude, re.IGNORECASE) if match]
+                print(f"MATCHES: {matches}")
+            else: # assuming 'or' (for now)
+                # Remove all <a> tags but keep their content
+                clean_content = re.sub(r'<a[^>]*>([^<]+)</a>', r'\1', prerequisites_text)
+                # Print the cleaned content (optional)
+                print(f"CLEANED: {clean_content}")
+                clean_ls = clean_content.split(' ')
+                courses = []
+                for i in range(len(clean_ls)):
+                    if clean_ls[i].strip().isdigit() and clean_ls[i - 1].strip().isupper():
+                        course = clean_ls[i - 1].strip() + ' ' + clean_ls[i].strip()
+                        courses.append(course)
+                print(f"COURSES: {courses}")
+
 if __name__ == "__main__":
     client = connection() # Establish initial connection
     # Some global variables
@@ -209,6 +242,8 @@ if __name__ == "__main__":
     course_dict = {} # { course_name:course_link }
     course_reference = {} # for storing { num:course_name } key-value pairs
     course_catalog = {} # { course_name:([credits], [times offered])}
+    code_reference = {} # { course_code: num } for e.g. { AAE 19000: 0 }
+    course_details = {} # { course_name: ([])}
 
     spiders = [Detail_Spider] # put the spiders you want to run here (Reference_Spider, Catalog_Spider)
     run_spiders(spiders)

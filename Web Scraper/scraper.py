@@ -251,8 +251,11 @@ class Detail_Spider(scrapy.Spider):
             if "Graduate" in restrictions_text:
                 grad = True
             print(f"RESTRICTIONS: {grad}")
-        if len(matches) > 0 and len(courses) > 0:
+        if len(matches) > 0 and len(courses) > 0: # produce ls within ls output for prerequisites
             pass
+# Function taking matches & courses and returns ls within ls output for prerequisites
+
+
 if __name__ == "__main__":
     client = connection() # Establish initial connection
     # Some global variables

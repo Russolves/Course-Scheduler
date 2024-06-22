@@ -199,18 +199,27 @@ class Detail_Spider(scrapy.Spider):
     #     print(f"An exception occurred during establishing mongodb connection in Detail Spider:{e}")
     # finally:
     #     client.close()
-    start_urls = ['https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=CS&crse_numb_in=42200', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BME&crse_numb_in=58300', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=ASM&crse_numb_in=10500', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=AGEC&crse_numb_in=69900', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BIOL&crse_numb_in=44202']
+    start_urls = ['https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=EDCI&crse_numb_in=65300', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=CS&crse_numb_in=42200', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BME&crse_numb_in=58300', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=ASM&crse_numb_in=10500', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=AGEC&crse_numb_in=69900', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BIOL&crse_numb_in=44202']
 
     def parse( self, response ):
         course_name = response.xpath('//td[@class="nttitle"]/text()').get()
         element_all = response.xpath('//td[@class="ntdefault"]').getall()[0] # use this to parse for prerequisites 'and', 'or'
+        # initialize variables
+        courses = []
+        grad = False
+        course_description = element_all[element_all.index('. ') + len('. '):element_all.index('<br>')].strip() # parsing for course description
+        additional = ''
         prerequisites_tag = '<span class="fieldlabeltext">Prerequisites:'
+        restrictions_tag = '<span class="fieldlabeltext">Restrictions:</span>'
         if prerequisites_tag in element_all:
             prerequisites_text = element_all[element_all.index(prerequisites_tag) + len(prerequisites_tag):element_all.index('</td>')]
             # print(f"PREREQUISITES: {prerequisites_text}")
             if "General Requirements:" in prerequisites_text:
                 prerequisites_start = prerequisites_text.index('(')
                 prerequisites_crude = prerequisites_text[prerequisites_start:]
+                # Check whether course is graduate level
+                if "Student Attribute: GR" in prerequisites_crude:
+                    grad = True
                 # Regex pattern to find courses within <a> tags followed by the course number
                 pattern = r'<a[^>]*>(\w+)</a>\s*(\d{5})'
                 # Find all matches in the section HTML
@@ -228,13 +237,22 @@ class Detail_Spider(scrapy.Spider):
                 # Print the cleaned content (optional)
                 print(f"CLEANED: {clean_content}")
                 clean_ls = clean_content.split(' ')
-                courses = []
                 for i in range(len(clean_ls)):
                     if clean_ls[i].strip().isdigit() and clean_ls[i - 1].strip().isupper():
                         course = clean_ls[i - 1].strip() + ' ' + clean_ls[i].strip()
                         courses.append(course)
                 print(f"COURSES: {courses}")
-
+                matches = [word for word in clean_content.split(' ') if word == 'or' or word == 'and']
+                additional = ', '.join([word for word in clean_content.split(' ' ) if word == 'ALEKS' or word == 'ACT' or word == 'SAT'])
+                print(f"MATCHES: {matches}")
+                print(f"ADDITIONAL: {additional}")
+        elif restrictions_tag in element_all:
+            restrictions_text = element_all[element_all.index(restrictions_tag) + len(restrictions_tag):]
+            if "Graduate" in restrictions_text:
+                grad = True
+            print(f"RESTRICTIONS: {grad}")
+        if len(matches) > 0 and len(courses) > 0:
+            pass
 if __name__ == "__main__":
     client = connection() # Establish initial connection
     # Some global variables
@@ -243,7 +261,8 @@ if __name__ == "__main__":
     course_reference = {} # for storing { num:course_name } key-value pairs
     course_catalog = {} # { course_name:([credits], [times offered])}
     code_reference = {} # { course_code: num } for e.g. { AAE 19000: 0 }
-    course_details = {} # { course_name: ([])}
+    course_details = {} # { course_name: ([[reference]], grad, course_description, additional)}
+    # Reference has to be ls within ls due to classes that can be substituted for each other
 
     spiders = [Detail_Spider] # put the spiders you want to run here (Reference_Spider, Catalog_Spider)
     run_spiders(spiders)

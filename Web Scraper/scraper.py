@@ -204,17 +204,22 @@ class Detail_Spider(scrapy.Spider):
     def parse( self, response ):
         course_name = response.xpath('//td[@class="nttitle"]/text()').get()
         element_all = response.xpath('//td[@class="ntdefault"]').getall()[0] # use this to parse for prerequisites 'and', 'or'
+        matches = []
+        ignore_flag = False # flag for ignoring the first 'or' or 'and' should there be general requirements
         # initialize variables
         courses = []
         grad = False
         course_description = element_all[element_all.index('. ') + len('. '):element_all.index('<br>')].strip() # parsing for course description
         additional = ''
+        levels = []
+        campus = []
         prerequisites_tag = '<span class="fieldlabeltext">Prerequisites:'
         restrictions_tag = '<span class="fieldlabeltext">Restrictions:</span>'
         if prerequisites_tag in element_all:
             prerequisites_text = element_all[element_all.index(prerequisites_tag) + len(prerequisites_tag):element_all.index('</td>')]
             # print(f"PREREQUISITES: {prerequisites_text}")
             if "General Requirements:" in prerequisites_text:
+                ignore_flag = True
                 prerequisites_start = prerequisites_text.index('(')
                 prerequisites_crude = prerequisites_text[prerequisites_start:]
                 # Check whether course is graduate level
@@ -235,7 +240,7 @@ class Detail_Spider(scrapy.Spider):
                 # Remove all <a> tags but keep their content
                 clean_content = re.sub(r'<a[^>]*>([^<]+)</a>', r'\1', prerequisites_text)
                 # Print the cleaned content (optional)
-                print(f"CLEANED: {clean_content}")
+                # print(f"CLEANED: {clean_content}")
                 clean_ls = clean_content.split(' ')
                 for i in range(len(clean_ls)):
                     if clean_ls[i].strip().isdigit() and clean_ls[i - 1].strip().isupper():
@@ -251,10 +256,47 @@ class Detail_Spider(scrapy.Spider):
             if "Graduate" in restrictions_text:
                 grad = True
             print(f"RESTRICTIONS: {grad}")
+        # Parsing rest of the page (elements that are for sure on the page)
+        if '<span class="fieldlabeltext">Levels: </span>' in element_all:
+            level_text = element_all[element_all.index('<span class="fieldlabeltext">Levels: </span>') + len('<span class="fieldlabeltext">Levels: </span>'):]
+            levels = level_text[:level_text.index('<br>')].strip().split(', ')
+            print(f"LEVELS: {levels}")
+        if '<span class="fieldlabeltext">May be offered at any of the following campuses:</span>' in element_all:
+            campus_text = element_all[element_all.index('<span class="fieldlabeltext">May be offered at any of the following campuses:</span>') + len('<span class="fieldlabeltext">May be offered at any of the following campuses:</span>'):]
+            campus_crude = campus_text[campus_text.index('<br>') + len('<br>'):campus_text.index('<br>\n<br>')].strip().split('<br>')
+            campus = [entry.strip() for entry in campus_crude]
+            print(f"CAMPUS: {campus}")
         if len(matches) > 0 and len(courses) > 0: # produce ls within ls output for prerequisites
-            pass
+            if ignore_flag:
+                matches.pop(0) # remove first entry of 'or' or 'and'
+            prereq_output = prerequisites_sorter(courses, matches)
+            print(f"PREREQ OUTPUT: {prereq_output}")
 # Function taking matches & courses and returns ls within ls output for prerequisites
-
+def prerequisites_sorter(courses, matches):
+    output = [[courses.pop(0)]] # initialize output as ls within ls
+    prev = None
+    while courses:
+        term = matches.pop(0)
+        next_course = courses.pop(0)
+        if term == 'and':
+            for entry in output:
+                entry.append(next_course)
+        elif term == 'or':
+            if prev == 'and':
+                for i in range(len(output)): # predefined length
+                    ls_copy = output[i].copy()
+                    ls_copy.pop()
+                    ls_copy.append(next_course)
+                    output.append(ls_copy)
+            else:
+                ls_copy = output[-1].copy()
+                ls_copy.pop()
+                ls_copy.append(next_course)
+                output.append(ls_copy)
+        else:
+            raise Exception("A term other than 'and' or 'or' has appeared within prerequisites_sorter")
+        prev = term
+    return output
 
 if __name__ == "__main__":
     client = connection() # Establish initial connection
@@ -264,7 +306,7 @@ if __name__ == "__main__":
     course_reference = {} # for storing { num:course_name } key-value pairs
     course_catalog = {} # { course_name:([credits], [times offered])}
     code_reference = {} # { course_code: num } for e.g. { AAE 19000: 0 }
-    course_details = {} # { course_name: ([[reference]], grad, course_description, additional)}
+    course_details = {} # { course_name: ([[reference]], grad, course_description, additional, [levels], [campus])}
     # Reference has to be ls within ls due to classes that can be substituted for each other
 
     spiders = [Detail_Spider] # put the spiders you want to run here (Reference_Spider, Catalog_Spider)

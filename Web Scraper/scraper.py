@@ -211,6 +211,7 @@ class Detail_Spider(scrapy.Spider):
         course_description = element_all[element_all.index('. ') + len('. '):element_all.index('<br>')].strip() # parsing for course description
         additional = ''
         levels = []
+        schedule_types = []
         campus = []
         prerequisites_tag = '<span class="fieldlabeltext">Prerequisites:'
         restrictions_tag = '<span class="fieldlabeltext">Restrictions:</span>'
@@ -265,20 +266,30 @@ class Detail_Spider(scrapy.Spider):
             campus_crude = campus_text[campus_text.index('<br>') + len('<br>'):campus_text.index('<br>\n<br>')].strip().split('<br>')
             campus = [entry.strip() for entry in campus_crude]
             print(f"CAMPUS: {campus}")
+        if '<span class="fieldlabeltext">Schedule Types: </span>' in element_all:
+            schedule_crude = element_all[element_all.index('<span class="fieldlabeltext">Schedule Types: </span>') + len('<span class="fieldlabeltext">Schedule Types: </span>'):].strip()
+            schedule_text = schedule_crude[:schedule_crude.index('<br>\n<br>')].strip()
+            pattern = r'<a[^>]*>([^<]+)</a>' # Find all <a> tags and capture their inner text
+            schedule_pattern = re.findall(pattern, schedule_text)
+            schedule_types = schedule_pattern
+            cleaned_schedule_text = re.sub(r'<a[^>]*>([^<]+)</a>', r'\1', schedule_text) # remove all <a> tags but keep text content
+            other_types = cleaned_schedule_text.split(', ')
+            schedule_types.extend(other_types)
+            schedule_types = list(set(schedule_types)) # ensure only unique values are pushed into ls
+            print(f"SCHEDULE TYPES: {schedule_types}")
         if len(matches) > 0 and len(courses) > 0: # produce ls within ls output for prerequisites
             if ignore_flag:
                 matches.pop(0) # remove first entry of 'or' or 'and'
-            prereq_output = prerequisites_sorter(courses, matches)
+            prereq_output, reference_output = prerequisites_sorter(courses, matches)
             print(f"PREREQ OUTPUT: {prereq_output}")
+            print(f"REFERENCE OUTPUT: {reference_output}")
 # Function taking matches & courses and returns ls within ls output for prerequisites
 def prerequisites_sorter(courses, matches):
-    initial = courses.pop(0)
-    output = [[code_reference[initial]]] if code_reference.get(initial) != None else [[-1]] # initialize output as ls within ls (using code reference)
+    output = [[courses.pop(0)]] # initialize output as ls within ls
     prev = None
     while courses:
         term = matches.pop(0)
-        next_courseName = courses.pop(0)
-        next_course = code_reference[next_courseName] if code_reference.get(next_courseName) != None else -1
+        next_course = courses.pop(0)
         if term == 'and':
             for entry in output:
                 entry.append(next_course)
@@ -295,9 +306,19 @@ def prerequisites_sorter(courses, matches):
                 ls_copy.append(next_course)
                 output.append(ls_copy)
         else:
-            raise Exception("A term other than 'and' or 'or' has appeared within prerequisites_sorter")
+            raise Exception(f"A term other than 'and' or 'or' has appeared within prerequisites_sorter, term: {term}")
         prev = term
-    return output
+    # convert each and every element in ls of ls into reference
+    reference_output = []
+    for i in range(len(output)):
+        temp = []
+        for course in output[i]:
+            if code_reference.get(course) != None:
+                temp.append(code_reference[course])
+            else:
+                temp.append(-1)
+        reference_output.append(temp)
+    return output, reference_output
 # Method to retrieve code_reference
 def retrieve_codeReference(code_reference):
     try:
@@ -325,8 +346,8 @@ if __name__ == "__main__":
     course_reference = {} # for storing { num:course_name } key-value pairs
     course_catalog = {} # { course_name:([credits], [times offered])}
     code_reference = {} # { course_code: num } for e.g. { AAE 19000: 0 }
-    course_details = {} # { course_name: ([[reference]], grad, course_description, additional, [levels], [campus])}
-    # Reference has to be ls within ls due to classes that can be substituted for each other
+    course_details = {} # { course_name: ([[course_code]], [[reference]], grad, course_description, additional, [levels], [schedule_types], [campus])}
+    # reference & course_code has to be ls within ls due to classes that can be substituted for each other
     code_reference = retrieve_codeReference(code_reference)
     spiders = [Detail_Spider] # put the spiders you want to run here (Reference_Spider, Catalog_Spider)
     run_spiders(spiders)

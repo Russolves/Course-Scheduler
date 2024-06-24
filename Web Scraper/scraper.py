@@ -191,7 +191,6 @@ class Detail_Spider(scrapy.Spider):
     #         course_name = entry['course_name']
     #         reference = entry['reference']
     #         course = course_name[:course_name.index(" -")].strip() # parse course name
-    #         code_reference[course] = reference # push into code reference for use later
     #         course_dept, course_code = course.split(' ')
     #         url = f"https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in={course_dept}&crse_numb_in={course_code}"
     #         start_urls.append(url)
@@ -273,11 +272,13 @@ class Detail_Spider(scrapy.Spider):
             print(f"PREREQ OUTPUT: {prereq_output}")
 # Function taking matches & courses and returns ls within ls output for prerequisites
 def prerequisites_sorter(courses, matches):
-    output = [[courses.pop(0)]] # initialize output as ls within ls
+    initial = courses.pop(0)
+    output = [[code_reference[initial]]] if code_reference.get(initial) != None else [[-1]] # initialize output as ls within ls (using code reference)
     prev = None
     while courses:
         term = matches.pop(0)
-        next_course = courses.pop(0)
+        next_courseName = courses.pop(0)
+        next_course = code_reference[next_courseName] if code_reference.get(next_courseName) != None else -1
         if term == 'and':
             for entry in output:
                 entry.append(next_course)
@@ -297,6 +298,24 @@ def prerequisites_sorter(courses, matches):
             raise Exception("A term other than 'and' or 'or' has appeared within prerequisites_sorter")
         prev = term
     return output
+# Method to retrieve code_reference
+def retrieve_codeReference(code_reference):
+    try:
+        client = connection()
+        db = client['course_database']
+        collection = db['course_reference']
+        cursor = collection.find({}, {"_id":0, "course_name":1, "reference":1})
+        documents = list(cursor)
+        for entry in documents:
+            course_name = entry['course_name']
+            reference = entry['reference']
+            course = course_name[:course_name.index(" -")].strip() # parse course name
+            code_reference[course] = reference # push into code reference for use later
+    except Exception as e:
+        print(f"An exception occurred during the retrieval of code_reference: {e}")
+    finally:
+        client.close()
+        return code_reference
 
 if __name__ == "__main__":
     client = connection() # Establish initial connection
@@ -308,7 +327,7 @@ if __name__ == "__main__":
     code_reference = {} # { course_code: num } for e.g. { AAE 19000: 0 }
     course_details = {} # { course_name: ([[reference]], grad, course_description, additional, [levels], [campus])}
     # Reference has to be ls within ls due to classes that can be substituted for each other
-
+    code_reference = retrieve_codeReference(code_reference)
     spiders = [Detail_Spider] # put the spiders you want to run here (Reference_Spider, Catalog_Spider)
     run_spiders(spiders)
     # update_courseReference(client)

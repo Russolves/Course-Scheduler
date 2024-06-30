@@ -180,26 +180,25 @@ def update_courseCatalog(client):
 # Spider for parsing course details page (prerequisites, summary, campus_offered...)
 class Detail_Spider(scrapy.Spider):
     name = 'detail_spider'
-    # try:
-    #     client = connection()
-    #     db = client['course_database']
-    #     collection = db['course_reference']
-    #     cursor = collection.find({}, {"_id":0, "course_name":1, "reference":1})
-    #     documents = list(cursor)
-    #     start_urls = []
-    #     for entry in documents:
-    #         course_name = entry['course_name']
-    #         reference = entry['reference']
-    #         course = course_name[:course_name.index(" -")].strip() # parse course name
-    #         course_dept, course_code = course.split(' ')
-    #         url = f"https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in={course_dept}&crse_numb_in={course_code}"
-    #         start_urls.append(url)
-    # except Exception as e:
-    #     print(f"An exception occurred during establishing mongodb connection in Detail Spider:{e}")
-    # finally:
-    #     client.close()
-    start_urls = ['https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=EDCI&crse_numb_in=65300', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=CS&crse_numb_in=42200', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BME&crse_numb_in=58300', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=ASM&crse_numb_in=10500', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=AGEC&crse_numb_in=69900', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BIOL&crse_numb_in=44202']
-
+    try:
+        client = connection()
+        db = client['course_database']
+        collection = db['course_reference']
+        cursor = collection.find({}, {"_id":0, "course_name":1, "reference":1})
+        documents = list(cursor)
+        start_urls = []
+        for entry in documents:
+            course_name = entry['course_name']
+            reference = entry['reference']
+            course = course_name[:course_name.index(" -")].strip() # parse course name
+            course_dept, course_code = course.split(' ')
+            url = f"https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in={course_dept}&crse_numb_in={course_code}"
+            start_urls.append(url)
+    except Exception as e:
+        print(f"An exception occurred during establishing mongodb connection in Detail Spider:{e}")
+    finally:
+        client.close()
+    # start_urls = ['https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=EDCI&crse_numb_in=65300', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=CS&crse_numb_in=42200', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BME&crse_numb_in=58300', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=ASM&crse_numb_in=10500', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=AGEC&crse_numb_in=69900', 'https://selfservice.mypurdue.purdue.edu/prod/bwckctlg.p_disp_course_detail?cat_term_in=202330&subj_code_in=BIOL&crse_numb_in=44202']
     def parse( self, response ):
         course_name = response.xpath('//td[@class="nttitle"]/text()').get()
         element_all = response.xpath('//td[@class="ntdefault"]').getall()[0] # use this to parse for prerequisites 'and', 'or'
@@ -207,8 +206,19 @@ class Detail_Spider(scrapy.Spider):
         ignore_flag = False # flag for ignoring the first 'or' or 'and' should there be general requirements
         # initialize variables
         courses = []
+        prereq_output = []
+        reference_output = []
         grad = False
-        course_description = element_all[element_all.index('. ') + len('. '):element_all.index('<br>')].strip() # parsing for course description
+        course_description = ''
+        try:
+            course_description = element_all[element_all.index('. ') + len('. '):element_all.index('<br>')].strip() # parsing for course description
+        except ValueError as e:
+            uri = str(response)
+            subj_index = uri.index('subj_code_in')
+            subj_err = uri[subj_index+ len('subj_code_in='):subj_index + uri[subj_index:].index('&')]
+            course_err = uri[uri.index('crse_numb_in=') + len('crse_numb_in='):-1]
+            print(f"\nIt would seem that the page for {subj_err}: {course_err} is empty double check if necessary\n")
+            error_courses.append(f"{subj_err} {course_err}")
         additional = ''
         levels = []
         schedule_types = []
@@ -283,6 +293,8 @@ class Detail_Spider(scrapy.Spider):
             prereq_output, reference_output = prerequisites_sorter(courses, matches)
             print(f"PREREQ OUTPUT: {prereq_output}")
             print(f"REFERENCE OUTPUT: {reference_output}")
+        # piecing course_details output together
+        course_details[course_name] = (prereq_output, reference_output, grad, course_description, additional, levels, schedule_types, campus)
 # Function taking matches & courses and returns ls within ls output for prerequisites
 def prerequisites_sorter(courses, matches):
     output = [[courses.pop(0)]] # initialize output as ls within ls
@@ -346,11 +358,14 @@ if __name__ == "__main__":
     course_reference = {} # for storing { num:course_name } key-value pairs
     course_catalog = {} # { course_name:([credits], [times offered])}
     code_reference = {} # { course_code: num } for e.g. { AAE 19000: 0 }
+    error_courses = [] # contains ls of all courses in which the details spider was not able to parse
     course_details = {} # { course_name: ([[course_code]], [[reference]], grad, course_description, additional, [levels], [schedule_types], [campus])}
     # reference & course_code has to be ls within ls due to classes that can be substituted for each other
     code_reference = retrieve_codeReference(code_reference)
     spiders = [Detail_Spider] # put the spiders you want to run here (Reference_Spider, Catalog_Spider)
     run_spiders(spiders)
+    print(f"Error courses: {error_courses}")
+    print(f"Course Details: {course_details}")
     # update_courseReference(client)
     # update_courseCatalog(client)
     client.close()

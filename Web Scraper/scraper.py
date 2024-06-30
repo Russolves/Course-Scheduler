@@ -366,6 +366,7 @@ if __name__ == "__main__":
     run_spiders(spiders)
     print(f"Error courses: {error_courses}")
     print(f"Course Details: {course_details}")
+    print(f"Number of encountered errors: {len(error_courses)}")
     # update_courseReference(client)
     # update_courseCatalog(client)
     client.close()

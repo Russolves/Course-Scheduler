@@ -208,7 +208,7 @@ class Detail_Spider(scrapy.Spider):
         # initialize variables
         courses = []
         grad = False
-        course_description = element_all[element_all.index('. ') + len('. '):element_all.index('<br>')].strip() # parsing for course description
+        course_description = element_all[element_all.index('. ') + len('. '):element_all.index('<br>')].strip() # parsing for course descriptio
         additional = ''
         levels = []
         schedule_types = []

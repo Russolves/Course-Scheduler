@@ -349,6 +349,32 @@ def retrieve_codeReference(code_reference):
     finally:
         client.close()
         return code_reference
+# Method to write details into mongodb database
+def update_courseDetails(client):
+    # update entries within mongodb based on course details dict
+    try:
+        db = client['course_database']
+        collection = db['course_reference']
+        for name in course_details:
+            filter = {"course_name": name} # use course name as filter
+            update = {
+                "$set": {
+                    "prereq_courses":course_details[name][0], # ls of ls
+                    "prereq_reference":course_details[name][1], # ls of ls
+                    "grad":course_details[name][2], # boolean
+                    "course_description":course_details[name][3], # string
+                    "additional":course_details[name][4], # string
+                    "levels":course_details[name][5], # ls
+                    "schedule_types":course_details[name][6], # ls
+                    "campus":course_details[name][7], # ls
+                }
+            }
+            result = collection.update_one(filter, update, upsert = True) # Upsert into course_reference
+        print(f"Matched count: {result.matched_count}")
+        print(f"Modified count: {result.modified_count}")
+        print(f"Upserted id: {result.upserted_id}")
+    except Exception as e:
+        print(f"Something went wrong during the process of writing prerequisite course details to mongodb: {e}")
 
 if __name__ == "__main__":
     client = connection() # Establish initial connection
@@ -369,5 +395,6 @@ if __name__ == "__main__":
     print(f"Number of encountered errors: {len(error_courses)}")
     # update_courseReference(client)
     # update_courseCatalog(client)
+    update_courseDetails(client)
     client.close()
 

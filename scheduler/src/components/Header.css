@@ -1,0 +1,17 @@
+/* removes the dot for li tags */
+ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+
+.main-link {
+    color:rgb(89, 41, 41); /* Change text color */
+    text-decoration: none; /* Remove underline */
+    font-size: 18px; /* Change font size */
+    padding: 10px; /* Add padding */
+    transition: color 1s ease; /* Smooth color transition */  
+}
+.main-link:hover {
+    color: navy;
+}

@@ -1,0 +1,22 @@
+/* App.css */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.App {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  /* This makes the main content take up remaining space */
+  display: flex;
+  flex-direction: column;
+}

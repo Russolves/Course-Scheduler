@@ -1,3 +1,17 @@
 .main-title {
-    color:rgb(21, 27, 102);
+    color:rgb(15, 35, 102);
 }
+.autocomplete-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1vh;
+    max-width: 30vw;
+  }
+  
+  .autocomplete-row .MuiAutocomplete-root {
+    flex-grow: 1;
+  }
+  
+  .autocomplete-row .MuiIconButton-root {
+    margin-left: 8px;
+  }

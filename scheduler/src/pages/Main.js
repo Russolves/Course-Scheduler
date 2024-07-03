@@ -45,7 +45,7 @@ function Main() {
     // to optimize suggestions
     const handleInputChange = (event, newInputValue) => {
         try {            
-            // if database is dirty (null values exist) make sure suggestion filters them out
+            // if null course_names exist within db make sure suggestion filters them out
             const filtered = courseSuggestions.filter((suggestion) => 
                 suggestion && suggestion.toLowerCase().includes(newInputValue.toLowerCase())
             ).slice(0, 15); // limit number of suggestions

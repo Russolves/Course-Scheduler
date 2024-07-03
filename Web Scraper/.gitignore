@@ -1,3 +1,0 @@
-# Files to ignore for git
-.env
-scheduler/node_modules

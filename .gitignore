@@ -1,0 +1,5 @@
+# Files to ignore for git
+Web Scraper/.env
+scheduler/node_modules
+backend/node_modules
+backend/.env

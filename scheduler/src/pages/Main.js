@@ -7,23 +7,27 @@ import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 
 function Main() {
-    let suggestions = [
-        'ECE 46900 - Operating Systems Engineering',
-        'ECE 57300 - Embedded Systems',
-        'ECE 30200 - Probabilistic Methods',
-        'ECE 30100 - Signals and Systems',
-        'ECE 10100 - Intro to ECE',
-        'ECE 12300 - Test for ECE'
-    ]
-    suggestions.sort();
     // define state variables
     const [courseElements, setCourseElements] = useState([0, 1, 2]); // initialize with 3 options
-    const [courseSuggestions, setCourseSuggestions] = useState(suggestions);
+    const [courseSuggestions, setCourseSuggestions] = useState([]);
     const [courseValues, setCourseValues] = useState({});
+    const [filteredSuggestions, setFilteredSuggestions] = useState([]);
     // function to run upon rending of page
     useEffect(() => {
-        console.log('Page has been rendered!');
-    }, []); // This effect runs every time currentNum changes
+        // call API to receive list of courses available in db
+        async function fetch_courses() {
+            try {
+                const courses_response = await fetch('http://localhost:2000/courses');
+                const courses_data = await courses_response.json();
+                const courses_reference = courses_data.payload;
+                const course_names = courses_reference.map((entry) => entry.course_name);
+                setCourseSuggestions(course_names);
+            } catch (error) {
+                console.log('Something went wrong with calling /courses backend endpoint:', error);
+            }
+        }
+        fetch_courses();
+    }, []);
 
     // button to add autocomplete DOM component
     const addCourse = () => {
@@ -37,6 +41,18 @@ function Main() {
             ...prevValues,
             [index]: newValue,
         }));
+    }
+    // to optimize suggestions
+    const handleInputChange = (event, newInputValue) => {
+        try {            
+            // if database is dirty (null values exist) make sure suggestion filters them out
+            const filtered = courseSuggestions.filter((suggestion) => 
+                suggestion && suggestion.toLowerCase().includes(newInputValue.toLowerCase())
+            ).slice(0, 15); // limit number of suggestions
+            setFilteredSuggestions(filtered);
+        } catch (error) {
+            console.log('Error in handleInputChange:', error);
+        }
     }
     // for deletion
     const handleDelete = (index) => {
@@ -66,12 +82,13 @@ function Main() {
                         <Autocomplete
                             disablePortal
                             id={`course-box-${index}`}
-                            options={courseSuggestions}
+                            options={filteredSuggestions}
+                            getOptionLabel={(option) => (option ? option.toString() : '')} // Use the option string directly as the label
                             sx={{ width: 300, marginTop: 2 }}
                             value={courseValues[index] || null}
                             onChange={(event, newValue) => handleAutocompleteChange(index, event, newValue)}
-                            renderInput={(params) => <TextField {...params} label={`Enter Course ${index + 1}`}
-                                style={{ width: '25vw' }} />}
+                            onInputChange={(event, newValue) => handleInputChange(event, newValue)}
+                            renderInput={(params) => <TextField {...params} label={`Enter Course ${index + 1}`} style={{ width: '25vw' }} />}
                         />
                         {index > 2 && (
                             <IconButton

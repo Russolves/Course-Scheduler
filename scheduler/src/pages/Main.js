@@ -20,6 +20,11 @@ function Main() {
     const [courseElements, setCourseElements] = useState([0, 1, 2]); // initialize with 3 options
     const [courseSuggestions, setCourseSuggestions] = useState(suggestions);
     const [courseValues, setCourseValues] = useState({});
+    // function to run upon rending of page
+    useEffect(() => {
+        console.log('Page has been rendered!');
+    }, []); // This effect runs every time currentNum changes
+
     // button to add autocomplete DOM component
     const addCourse = () => {
         setCourseElements([...courseElements, courseElements.length])

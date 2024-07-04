@@ -3,6 +3,7 @@ import './Main.css';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 
@@ -12,6 +13,8 @@ function Main() {
     const [courseSuggestions, setCourseSuggestions] = useState([]);
     const [courseValues, setCourseValues] = useState({});
     const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+    const [showAlert, setShowAlert] = useState(false);
+    const [alertText, setAlertText] = useState('');
     // function to run upon rending of page
     useEffect(() => {
         // call API to receive list of courses available in db
@@ -35,8 +38,22 @@ function Main() {
     };
     // handle autocomplete component answers
     const handleAutocompleteChange = (index, event, newValue) => {
-        const removeIndex = courseSuggestions.indexOf(newValue);
-        courseSuggestions.splice(removeIndex, 1); // remove option after it has been chosen
+        if (newValue == null) {
+            let courseSuggestions_ls = courseSuggestions;
+            courseSuggestions_ls.push(courseValues[index]);
+            const courseSuggestions_set = new Set(courseSuggestions_ls);
+            courseSuggestions_ls = Array.from(courseSuggestions_set);
+            courseSuggestions_ls.sort();
+            setCourseSuggestions(courseSuggestions_ls);
+        } else if (newValue != null) {
+            const removeIndex = courseSuggestions.indexOf(newValue);
+            courseSuggestions.splice(removeIndex, 1); // remove option after it has been chosen
+        }
+        if (newValue != null && Object.values(courseValues).includes(newValue)) {
+            setShowAlert(true);
+            setAlertText(newValue.slice(0, newValue.indexOf(' -')));
+            return; // do not push already chosen course
+        }
         setCourseValues((prevValues) => ({
             ...prevValues,
             [index]: newValue,
@@ -44,9 +61,10 @@ function Main() {
     }
     // to optimize suggestions
     const handleInputChange = (event, newInputValue) => {
-        try {            
+        setShowAlert(false);
+        try {
             // if null course_names exist within db make sure suggestion filters them out
-            const filtered = courseSuggestions.filter((suggestion) => 
+            const filtered = courseSuggestions.filter((suggestion) =>
                 suggestion && suggestion.toLowerCase().includes(newInputValue.toLowerCase())
             ).slice(0, 15); // limit number of suggestions
             setFilteredSuggestions(filtered);
@@ -76,6 +94,9 @@ function Main() {
         <div className='page'>
             <h1 className='main-title'>BME course scheduler</h1>
             <p>Please enter the courses you would like to take for the following semester</p>
+            {showAlert && (
+                <Alert severity="error">The course {alertText} has already been selected!</Alert>
+            )}
             <div>
                 {courseElements.map((element, index) => (
                     <div key={index} className="autocomplete-row">

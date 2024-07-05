@@ -91,7 +91,7 @@ function Main() {
     }
     function showInput() {
         const output = Object.values(courseValues);
-        if (output.includes(null)) {
+        if (output.length < 3 && output.includes(null)) {
             setShowNullAlert(true);
         } else {
             console.log('Print:', courseValues);

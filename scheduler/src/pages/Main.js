@@ -15,6 +15,7 @@ function Main() {
     const [filteredSuggestions, setFilteredSuggestions] = useState([]);
     const [showAlert, setShowAlert] = useState(false);
     const [alertText, setAlertText] = useState('');
+    const [showNullAlert, setShowNullAlert] = useState(false);
     // function to run upon rending of page
     useEffect(() => {
         // call API to receive list of courses available in db
@@ -48,6 +49,7 @@ function Main() {
         } else if (newValue != null) {
             const removeIndex = courseSuggestions.indexOf(newValue);
             courseSuggestions.splice(removeIndex, 1); // remove option after it has been chosen
+            setCourseSuggestions(courseSuggestions);
         }
         if (newValue != null && Object.values(courseValues).includes(newValue)) {
             setShowAlert(true);
@@ -62,6 +64,7 @@ function Main() {
     // to optimize suggestions
     const handleInputChange = (event, newInputValue) => {
         setShowAlert(false);
+        setShowNullAlert(false);
         try {
             // if null course_names exist within db make sure suggestion filters them out
             const filtered = courseSuggestions.filter((suggestion) =>
@@ -87,8 +90,13 @@ function Main() {
         }
     }
     function showInput() {
-        console.log('Print:', courseValues);
-        console.log('Course elements:', courseElements);
+        const output = Object.values(courseValues);
+        if (output.includes(null)) {
+            setShowNullAlert(true);
+        } else {
+            console.log('Print:', courseValues);
+            console.log('Course elements:', courseElements);
+        };
     }
     return (
         <div className='page'>
@@ -96,6 +104,9 @@ function Main() {
             <p>Please enter the courses you would like to take for the following semester</p>
             {showAlert && (
                 <Alert severity="error">The course {alertText} has already been selected!</Alert>
+            )}
+            {showNullAlert && (
+                <Alert severity="error">Please choose a minimum of at least 3 courses!</Alert>
             )}
             <div>
                 {courseElements.map((element, index) => (

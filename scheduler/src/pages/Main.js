@@ -5,7 +5,20 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
+import PropTypes from 'prop-types';
+import { styled } from '@mui/material/styles';
+import Box from '@mui/material/Box';
+import Stepper from '@mui/material/Stepper';
+import Step from '@mui/material/Step';
+import StepLabel from '@mui/material/StepLabel';
+import Check from '@mui/icons-material/Check';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
+import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+
+// defining steps for page
+const steps = ['Questionnaire', 'Select Courses', 'Scheduler Builder'];
 
 function Main() {
     // define state variables
@@ -16,6 +29,107 @@ function Main() {
     const [showAlert, setShowAlert] = useState(false);
     const [alertText, setAlertText] = useState('');
     const [showNullAlert, setShowNullAlert] = useState(false);
+    const [activeStep, setActiveStep] = useState(0);
+    const [skipped, setSkipped] = useState(new Set());
+    // define steps that can be skipped
+    const isStepOptional = (step) => {
+        return step === 0;
+    };
+    const isStepSkipped = (step) => {
+        return skipped.has(step);
+    }
+    const handleNext = () => {
+        let newSkipped = skipped;
+        if (isStepSkipped(activeStep)) {
+            newSkipped = new Set(newSkipped.values());
+            newSkipped.delete(activeStep); // 
+        }
+        setActiveStep((prevActiveStep => prevActiveStep + 1)); // set next step as active
+        setSkipped(newSkipped);
+    }
+    const handleBack = () => {
+        setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    };
+    const handleSkip = () => {
+        if (!isStepOptional(activeStep)) {
+            // You probably want to guard against something like this,
+            // it should never occur unless someone's actively trying to break something.
+            throw new Error("You can't skip a step that isn't optional.");
+        }
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        setSkipped((prevSkipped) => {
+            const newSkipped = new Set(prevSkipped.values());
+            newSkipped.add(activeStep);
+            return newSkipped;
+        });
+    };
+    const handleReset = () => { // to reset progress of stepper
+        setActiveStep(0);
+    };
+    const connectorColor = '#D4A017';
+    const iconColor = '#000000'
+    const CustomConnector = styled(StepConnector)(({ theme }) => ({
+        [`&.${stepConnectorClasses.alternativeLabel}`]: {
+            top: 10,
+        },
+        [`&.${stepConnectorClasses.active}`]: {
+            [`& .${stepConnectorClasses.line}`]: {
+                borderColor: connectorColor, // Active step color
+            },
+        },
+        [`&.${stepConnectorClasses.completed}`]: {
+            [`& .${stepConnectorClasses.line}`]: {
+                borderColor: connectorColor, // Completed step color
+            },
+        },
+        [`& .${stepConnectorClasses.line}`]: {
+            borderColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : '#eaeaf0',
+            borderTopWidth: 3,
+            borderRadius: 1,
+        },
+    }));
+
+    const CustomStepIconRoot = styled('div')(({ theme, ownerState }) => ({
+        color: theme.palette.mode === 'dark' ? theme.palette.grey[700] : '#eaeaf0',
+        display: 'flex',
+        height: 22,
+        alignItems: 'center',
+        ...(ownerState.active && {
+            color: iconColor, // Active icon color
+        }),
+        '& .CustomStepIcon-completedIcon': {
+            color: iconColor, // Completed icon color
+            zIndex: 1,
+            fontSize: 18,
+        },
+        '& .CustomStepIcon-circle': {
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            backgroundColor: 'currentColor',
+        },
+    }));
+
+    function CustomStepIcon(props) {
+        const { active, completed, className } = props;
+
+        return (
+            <CustomStepIconRoot ownerState={{ active }} className={className}>
+                {completed ? (
+                    <CheckCircleIcon style={{width:'0.9rem', height:'0.9rem'}} className="CustomStepIcon-completedIcon" />
+                ) : (
+                    <div className="CustomStepIcon-circle" />
+                )}
+            </CustomStepIconRoot>
+        );
+    }
+
+    CustomStepIcon.propTypes = {
+        active: PropTypes.bool,
+        className: PropTypes.string,
+        completed: PropTypes.bool,
+    };
+
     // function to run upon rending of page
     useEffect(() => {
         // call API to receive list of courses available in db
@@ -87,7 +201,7 @@ function Main() {
             if (parseInt(keysList[j]) >= 3) {
                 const courseValue = courseValues[keysList[j]];
                 delete courseValues[keysList[j]];
-                (courseValue != undefined) ? courseValues[i] = courseValue:i -= 1;
+                (courseValue != undefined) ? courseValues[i] = courseValue : i--;
                 i++;
             }
         }
@@ -110,48 +224,110 @@ function Main() {
     }
     return (
         <div className='page'>
-            <h1 className='main-title'>BME course scheduler</h1>
-            <p>Please enter the courses you would like to take for the following semester</p>
-            {showAlert && (
-                <Alert severity="error">The course {alertText} has already been selected!</Alert>
-            )}
-            {showNullAlert && (
-                <Alert severity="error">Please choose a minimum of at least 3 courses!</Alert>
-            )}
-            <div>
-                {courseElements.map((element, index) => (
-                    <div key={index} className="autocomplete-row">
-                        <Autocomplete
-                            disablePortal
-                            id={`course-box-${index}`}
-                            options={filteredSuggestions}
-                            getOptionLabel={(option) => (option ? option.toString() : '')} // Use the option string directly as the label
-                            sx={{ width: 300, marginTop: 2 }}
-                            value={courseValues[index] || null}
-                            onChange={(event, newValue) => handleAutocompleteChange(index, event, newValue)}
-                            onInputChange={(event, newValue) => handleInputChange(event, newValue)}
-                            renderInput={(params) => <TextField {...params} label={`Enter Course ${index + 1}`} style={{ width: '25vw' }} />}
-                        />
-                        {index > 2 && (
-                            <IconButton
-                                aria-label="delete"
-                                size="small"
-                                onClick={() => handleDelete(index)}
-                                style={{ marginTop: '2vh' }}
-                            >
-                                <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z" />
-                                </svg>
-                            </IconButton>
-                        )}
-                    </div>
-                ))}
-                <div>
-                    <Button style={{ marginBlock: '2vh' }} color="primary" onClick={addCourse}>Add Course</Button>
+            <Box width="60vw">
+                <Stepper activeStep={activeStep} connector={<CustomConnector />}>
+                    {steps.map((label, index) => {
+                        const stepProps = {};
+                        const labelProps = {};
+                        if (isStepOptional(index)) {
+                            labelProps.optional = (
+                                <Box display="flex" flexDirection="column" alignItems="flex-start" mt={-1}>
+                                    <Typography style={{ fontSize: '0.6rem', marginTop: '0.5rem' }} variant="caption">Optional</Typography>
+                                </Box>
+                            );
+                        }
+                        if (isStepSkipped(index)) {
+                            stepProps.completed = false;
+                        }
+                        return (
+                            <Step key={label} {...stepProps}>
+                                <StepLabel {...labelProps} StepIconComponent={CustomStepIcon}>{label}</StepLabel>
+                            </Step>
+                        );
+                    })}
+                </Stepper>
+            </Box>
+            <h1 className='main-title' style={{ display: 'flex', justifyContent: 'center' }}>BME course scheduler</h1>
+            {activeStep === 0 && (
+                <div style={{ display: 'flex', justifyContent: 'start' }}>
+                    <p class="explanation">Please fill in the following options</p>
                 </div>
-            </div>
-            <br />
-            <Button variant='contained' color="primary" onClick={showInput}>Click Me</Button>
+            )}
+            {/* second step */}
+            {activeStep === 1 && (
+                <div style={{ justifyContent: 'center' }}>
+                    <p class="explanation">Please enter the courses you would like to take for the following semester</p>
+                    {showAlert && (
+                        <Alert severity="error">The course {alertText} has already been selected!</Alert>
+                    )}
+                    {showNullAlert && (
+                        <Alert severity="error">Please choose a minimum of at least 3 courses!</Alert>
+                    )}
+                    <div>
+                        {courseElements.map((element, index) => (
+                            <div key={index} className="autocomplete-row">
+                                <Autocomplete
+                                    disablePortal
+                                    id={`course-box-${index}`}
+                                    options={filteredSuggestions}
+                                    getOptionLabel={(option) => (option ? option.toString() : '')} // Use the option string directly as the label
+                                    sx={{ width: 300, marginTop: 2 }}
+                                    value={courseValues[index] || null}
+                                    onChange={(event, newValue) => handleAutocompleteChange(index, event, newValue)}
+                                    onInputChange={(event, newValue) => handleInputChange(event, newValue)}
+                                    renderInput={(params) => <TextField {...params} label={`Enter Course ${index + 1}`} style={{ width: '25vw' }} />}
+                                />
+                                {index > 2 && (
+                                    <IconButton
+                                        aria-label="delete"
+                                        size="small"
+                                        onClick={() => handleDelete(index)}
+                                        style={{ marginTop: '2vh' }}
+                                    >
+                                        <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z" />
+                                        </svg>
+                                    </IconButton>
+                                )}
+                            </div>
+                        ))}
+                        <div>
+                            <Button style={{ marginBlock: '2vh' }} color="primary" onClick={addCourse}>Add Course</Button>
+                        </div>
+                    </div>
+                    <Button variant='contained' color="primary" onClick={showInput}>Click Me</Button>
+                </div>
+            )}
+            {activeStep === steps.length ? (
+                <React.Fragment>
+                    <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
+                        <Box sx={{ flex: '1 1 auto' }} />
+                        <Button onClick={handleReset}>Reset</Button>
+                    </Box>
+                </React.Fragment>
+            ) : (
+                <React.Fragment>
+                    <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
+                        <Button
+                            color="inherit"
+                            disabled={activeStep === 0}
+                            onClick={handleBack}
+                            sx={{ mr: 1 }}
+                        >
+                            Back
+                        </Button>
+                        <Box sx={{ flex: '1 1 auto' }} />
+                        {isStepOptional(activeStep) && (
+                            <Button color="inherit" variant="outlined" onClick={handleSkip} sx={{ mr: 1 }}>
+                                Skip
+                            </Button>
+                        )}
+                        <Button onClick={handleNext} variant="contained">
+                            {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
+                        </Button>
+                    </Box>
+                </React.Fragment>
+            )}
         </div>
     );
 }

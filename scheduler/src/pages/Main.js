@@ -79,19 +79,29 @@ function Main() {
     const handleDelete = (index) => {
         setCourseElements(courseElements.filter((_, i) => i !== index));
         const keysList = Object.keys(courseValues);
-        const ceiling = keysList.length;
         const course = courseValues[index];
         delete courseValues[index];
-        courseSuggestions.push(course);
-        for (let i = index + 1; i < ceiling; i++) {
-            const courseValue = courseValues[i];
-            delete courseValues[i];
-            courseValues[i - 1] = courseValue
+        if (course != null) courseSuggestions.push(course);
+        let i = 3;
+        for (let j = 0; j < keysList.length; j++) {
+            if (parseInt(keysList[j]) >= 3) {
+                const courseValue = courseValues[keysList[j]];
+                delete courseValues[keysList[j]];
+                (courseValue != undefined) ? courseValues[i] = courseValue:i -= 1;
+                i++;
+            }
         }
+        setCourseValues(courseValues);
     }
     function showInput() {
         const output = Object.values(courseValues);
-        if (output.length < 3 && output.includes(null)) {
+        let count = 0;
+        for (let i = 0; i < output.length; i++) {
+            if (output[i] != null) {
+                count += 1;
+            }
+        };
+        if (count < 3) {
             setShowNullAlert(true);
         } else {
             console.log('Print:', courseValues);

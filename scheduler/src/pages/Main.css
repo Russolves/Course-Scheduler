@@ -20,3 +20,19 @@
 .explanation {
   color:rgb(15, 35, 102);
 }
+
+.first-step-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+}
+
+.row {
+  margin-bottom: 10px;
+}
+
+.radio-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}

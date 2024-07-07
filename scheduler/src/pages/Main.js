@@ -16,6 +16,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import Radio from '@mui/material/Radio';
 
 // defining steps for page
 const steps = ['Questionnaire', 'Select Courses', 'Scheduler Builder'];
@@ -31,6 +32,9 @@ function Main() {
     const [showNullAlert, setShowNullAlert] = useState(false);
     const [activeStep, setActiveStep] = useState(0);
     const [skipped, setSkipped] = useState(new Set());
+    const [gradOr, setGradOr] = useState(''); // empty string ('grad' for graduate, 'undergraduate' ...)
+    const [semester, setSemester] = useState('') // empty string ('spring', 'fall', 'summer'...)
+
     // define steps that can be skipped
     const isStepOptional = (step) => {
         return step === 0;
@@ -66,6 +70,7 @@ function Main() {
     const handleReset = () => { // to reset progress of stepper
         setActiveStep(0);
     };
+    // stepper styles
     const connectorColor = '#D4A017';
     const iconColor = '#000000'
     const CustomConnector = styled(StepConnector)(({ theme }) => ({
@@ -88,7 +93,6 @@ function Main() {
             borderRadius: 1,
         },
     }));
-
     const CustomStepIconRoot = styled('div')(({ theme, ownerState }) => ({
         color: theme.palette.mode === 'dark' ? theme.palette.grey[700] : '#eaeaf0',
         display: 'flex',
@@ -109,27 +113,24 @@ function Main() {
             backgroundColor: 'currentColor',
         },
     }));
-
     function CustomStepIcon(props) {
         const { active, completed, className } = props;
 
         return (
             <CustomStepIconRoot ownerState={{ active }} className={className}>
                 {completed ? (
-                    <CheckCircleIcon style={{width:'0.9rem', height:'0.9rem'}} className="CustomStepIcon-completedIcon" />
+                    <CheckCircleIcon style={{ width: '0.9rem', height: '0.9rem' }} className="CustomStepIcon-completedIcon" />
                 ) : (
                     <div className="CustomStepIcon-circle" />
                 )}
             </CustomStepIconRoot>
         );
     }
-
     CustomStepIcon.propTypes = {
         active: PropTypes.bool,
         className: PropTypes.string,
         completed: PropTypes.bool,
     };
-
     // function to run upon rending of page
     useEffect(() => {
         // call API to receive list of courses available in db
@@ -146,7 +147,36 @@ function Main() {
         }
         fetch_courses();
     }, []);
-
+    // selected values
+    const handlegradChange = (event) => {
+        setGradOr(event.target.value); // empty string
+    };
+    const radio_sx = { color: '#999999', '&.Mui-checked': { color: '#fbc02d' } };
+    // for controlling radio style
+    const controlGradProps = (item) => ({
+        checked: gradOr === item,
+        onChange: handlegradChange, // selected value
+        value: item,
+        name: 'grad-radio-button',
+        inputProps: { 'aria-label': item }
+    });
+    // which semester
+    const handlesemesterChange = (event) => {
+        setSemester(event.target.value);
+    };
+    const controlSemesterProps = (item) => ({
+        checked: semester === item,
+        onChange: handlesemesterChange,
+        value: item,
+        name: 'semester-radio-button',
+        inputProps: { 'aria-label': item }
+    });
+    const showQuestion = () => {
+        let output = {};
+        output.gradOr = gradOr;
+        output.semesterOr = semester;
+        console.log("Questionnaire output:", output);
+    };
     // button to add autocomplete DOM component
     const addCourse = () => {
         setCourseElements([...courseElements, courseElements.length])
@@ -201,7 +231,7 @@ function Main() {
             if (parseInt(keysList[j]) >= 3) {
                 const courseValue = courseValues[keysList[j]];
                 delete courseValues[keysList[j]];
-                (courseValue != undefined) ? courseValues[i] = courseValue : i--;
+                (courseValue !== undefined) ? courseValues[i] = courseValue : i--;
                 i++;
             }
         }
@@ -248,10 +278,41 @@ function Main() {
                 </Stepper>
             </Box>
             <h1 className='main-title' style={{ display: 'flex', justifyContent: 'center' }}>BME course scheduler</h1>
+            {/* first step */}
             {activeStep === 0 && (
-                <div style={{ display: 'flex', justifyContent: 'start' }}>
-                    <p class="explanation">Please fill in the following options</p>
+                <div class="first-step-container">
+                    <div class="row">
+                        <p class="explanation">Please fill in the following options</p>
+                    </div>
+                    <div class="row">
+                        <p>Are you an undergraduate or graduate student?</p>
+                    </div>
+                    <div class="radio-row">
+                        <Radio {...controlGradProps('grad')} sx={radio_sx} />
+                        <span>Graduate</span>
+                    </div>
+                    <div class="radio-row">
+                        <Radio {...controlGradProps('undergrad')} sx={radio_sx} />
+                        <span>Undergraduate</span>
+                    </div>
+                    <div class="row">
+                        <p>Spring or Fall?</p>
+                    </div>
+                    <div class="radio-row">
+                        <Radio {...controlSemesterProps('fall')} sx={radio_sx} />
+                        <span>Fall</span>
+                    </div>
+                    <div class="radio-row">
+                        <Radio {...controlSemesterProps('spring')} sx={radio_sx} />
+                        <span>Spring</span>
+                    </div>
+                    <div class="radio-row">
+                        <Radio {...controlSemesterProps('summer')} sx={radio_sx} />
+                        <span>Summer</span>
+                    </div>
+                    <Button style={{ color: 'white', backgroundColor: 'black', width:'6.2vw' }} variant="contained" onClick={showQuestion}>Submit</Button>
                 </div>
+
             )}
             {/* second step */}
             {activeStep === 1 && (
@@ -292,10 +353,10 @@ function Main() {
                             </div>
                         ))}
                         <div>
-                            <Button style={{ marginBlock: '2vh' }} color="primary" onClick={addCourse}>Add Course</Button>
+                            <Button style={{ marginBlock: '2vh', color: 'black' }} color="primary" onClick={addCourse}>Add Course</Button>
                         </div>
                     </div>
-                    <Button variant='contained' color="primary" onClick={showInput}>Click Me</Button>
+                    <Button style={{ color: 'white', backgroundColor: 'black' }} variant='contained' onClick={showInput}>Click Me</Button>
                 </div>
             )}
             {activeStep === steps.length ? (
@@ -318,11 +379,11 @@ function Main() {
                         </Button>
                         <Box sx={{ flex: '1 1 auto' }} />
                         {isStepOptional(activeStep) && (
-                            <Button color="inherit" variant="outlined" onClick={handleSkip} sx={{ mr: 1 }}>
+                            <Button style={{ color: "black", borderColor: "black" }} variant="outlined" onClick={handleSkip} sx={{ mr: 1 }}>
                                 Skip
                             </Button>
                         )}
-                        <Button onClick={handleNext} variant="contained">
+                        <Button style={{ color: "white", backgroundColor: "rgb(190, 153, 50)" }} onClick={handleNext} variant="contained">
                             {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
                         </Button>
                     </Box>

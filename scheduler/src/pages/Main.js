@@ -17,6 +17,7 @@ import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Radio from '@mui/material/Radio';
+import { keyframes } from '@mui/system';
 
 // defining steps for page
 const steps = ['Questionnaire', 'Select Courses', 'Scheduler Builder'];
@@ -34,6 +35,7 @@ function Main() {
     const [skipped, setSkipped] = useState(new Set());
     const [gradOr, setGradOr] = useState(''); // empty string ('grad' for graduate, 'undergraduate' ...)
     const [semester, setSemester] = useState('') // empty string ('spring', 'fall', 'summer'...)
+    const [animationClass, setAnimationClass] = useState(''); // for animating the sliding window between steps
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -43,12 +45,17 @@ function Main() {
         return skipped.has(step);
     }
     const handleNext = () => {
+        // setAnimationClass('slide-out');
+        // setTimeout(() => {
+        //     setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        //     setAnimationClass('slide-in');
+        // }, 300); // adjust timeout to match duration of slide-out animation
         let newSkipped = skipped;
         if (isStepSkipped(activeStep)) {
             newSkipped = new Set(newSkipped.values());
             newSkipped.delete(activeStep); // 
         }
-        setActiveStep((prevActiveStep => prevActiveStep + 1)); // set next step as active
+        setActiveStep((prevActiveStep) => prevActiveStep + 1); // comment/delete this for animation
         setSkipped(newSkipped);
     }
     const handleBack = () => {
@@ -73,24 +80,36 @@ function Main() {
     // stepper styles
     const connectorColor = '#D4A017';
     const iconColor = '#000000'
+    // Define the keyframes for the fill animation
+    const fillAnimation = keyframes`
+        0% {
+        width: 0%; /* Start with no fill */
+        border-color: #eaeaf0; /* Inactive color */
+        }
+        100% {
+        width: 100%; /* Fully filled */
+        border-color: ${connectorColor}; /* Active color */
+        }
+    `;
     const CustomConnector = styled(StepConnector)(({ theme }) => ({
         [`&.${stepConnectorClasses.alternativeLabel}`]: {
             top: 10,
         },
         [`&.${stepConnectorClasses.active}`]: {
             [`& .${stepConnectorClasses.line}`]: {
-                borderColor: connectorColor, // Active step color
+                animation: `${fillAnimation} 0.35s forwards`,
             },
         },
         [`&.${stepConnectorClasses.completed}`]: {
             [`& .${stepConnectorClasses.line}`]: {
-                borderColor: connectorColor, // Completed step color
+                animation: `${fillAnimation} 0s forwards`,
             },
         },
         [`& .${stepConnectorClasses.line}`]: {
             borderColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : '#eaeaf0',
             borderTopWidth: 3,
             borderRadius: 1,
+            width: '100%', // Ensure the initial state is full width
         },
     }));
     const CustomStepIconRoot = styled('div')(({ theme, ownerState }) => ({
@@ -278,10 +297,11 @@ function Main() {
                 </Stepper>
             </Box>
             <h1 className='main-title' style={{ display: 'flex', justifyContent: 'center' }}>BME course scheduler</h1>
+            <div className={`step-container ${animationClass}`}>
             {/* first step */}
             {activeStep === 0 && (
                 <div class="first-step-container">
-                    <div class="row">
+                    <div>
                         <p class="explanation">Please fill in the following options</p>
                     </div>
                     <div class="row">
@@ -310,13 +330,14 @@ function Main() {
                         <Radio {...controlSemesterProps('summer')} sx={radio_sx} />
                         <span>Summer</span>
                     </div>
-                    <Button style={{ color: 'white', backgroundColor: 'black', width:'6.2vw' }} variant="contained" onClick={showQuestion}>Submit</Button>
+                    <Button style={{ color: 'white', backgroundColor: 'black', width: '6.2vw' }} variant="contained" onClick={showQuestion}>Submit</Button>
                 </div>
 
             )}
             {/* second step */}
             {activeStep === 1 && (
                 <div style={{ justifyContent: 'center' }}>
+                    <div className="second-step-container">
                     <p class="explanation">Please enter the courses you would like to take for the following semester</p>
                     {showAlert && (
                         <Alert severity="error">The course {alertText} has already been selected!</Alert>
@@ -357,8 +378,10 @@ function Main() {
                         </div>
                     </div>
                     <Button style={{ color: 'white', backgroundColor: 'black' }} variant='contained' onClick={showInput}>Click Me</Button>
+                    </div>
                 </div>
             )}
+            </div>
             {activeStep === steps.length ? (
                 <React.Fragment>
                     <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>

@@ -35,7 +35,7 @@ function Main() {
     const [skipped, setSkipped] = useState(new Set());
     const [gradOr, setGradOr] = useState(''); // empty string ('grad' for graduate, 'undergraduate' ...)
     const [semester, setSemester] = useState('') // empty string ('spring', 'fall', 'summer'...)
-    const [animationClass, setAnimationClass] = useState(''); // for animating the sliding window between steps
+    const [animationClass, setAnimationClass] = useState(['slide-in', 'slide-o', 'slide-back']); // for animating the sliding window between steps
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -45,21 +45,27 @@ function Main() {
         return skipped.has(step);
     }
     const handleNext = () => {
-        // setAnimationClass('slide-out');
+        // setAnimationClass('slide-left');
         // setTimeout(() => {
         //     setActiveStep((prevActiveStep) => prevActiveStep + 1);
-        //     setAnimationClass('slide-in');
+        //     setAnimationClass('slide-right');
         // }, 300); // adjust timeout to match duration of slide-out animation
         let newSkipped = skipped;
         if (isStepSkipped(activeStep)) {
             newSkipped = new Set(newSkipped.values());
             newSkipped.delete(activeStep); // 
         }
-        setActiveStep((prevActiveStep) => prevActiveStep + 1); // comment/delete this for animation
+        animationClass[activeStep] = 'slide-out';
+        if (activeStep + 1 < steps.length) animationClass[activeStep + 1] = 'slide-in';
+        console.log(activeStep);
+        console.log(animationClass);
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
         setSkipped(newSkipped);
     }
     const handleBack = () => {
         setActiveStep((prevActiveStep) => prevActiveStep - 1);
+        (activeStep === 1) ? animationClass[activeStep] = 'slide-o' : animationClass[activeStep] = 'slide-back';
+        if (activeStep - 1 >= 0) animationClass[activeStep - 1] = 'slide-in';
     };
     const handleSkip = () => {
         if (!isStepOptional(activeStep)) {
@@ -273,7 +279,7 @@ function Main() {
     }
     return (
         <div className='page'>
-            <Box width="60vw">
+            <Box width="75vw">
                 <Stepper activeStep={activeStep} connector={<CustomConnector />}>
                     {steps.map((label, index) => {
                         const stepProps = {};
@@ -297,91 +303,95 @@ function Main() {
                 </Stepper>
             </Box>
             <h1 className='main-title' style={{ display: 'flex', justifyContent: 'center' }}>BME course scheduler</h1>
-            <div className={`step-container ${animationClass}`}>
-            {/* first step */}
-            {activeStep === 0 && (
-                <div class="first-step-container">
-                    <div>
-                        <p class="explanation">Please fill in the following options</p>
-                    </div>
-                    <div class="row">
-                        <p>Are you an undergraduate or graduate student?</p>
-                    </div>
-                    <div class="radio-row">
-                        <Radio {...controlGradProps('grad')} sx={radio_sx} />
-                        <span>Graduate</span>
-                    </div>
-                    <div class="radio-row">
-                        <Radio {...controlGradProps('undergrad')} sx={radio_sx} />
-                        <span>Undergraduate</span>
-                    </div>
-                    <div class="row">
-                        <p>Spring or Fall?</p>
-                    </div>
-                    <div class="radio-row">
-                        <Radio {...controlSemesterProps('fall')} sx={radio_sx} />
-                        <span>Fall</span>
-                    </div>
-                    <div class="radio-row">
-                        <Radio {...controlSemesterProps('spring')} sx={radio_sx} />
-                        <span>Spring</span>
-                    </div>
-                    <div class="radio-row">
-                        <Radio {...controlSemesterProps('summer')} sx={radio_sx} />
-                        <span>Summer</span>
-                    </div>
-                    <Button style={{ color: 'white', backgroundColor: 'black', width: '6.2vw' }} variant="contained" onClick={showQuestion}>Submit</Button>
-                </div>
-
-            )}
-            {/* second step */}
-            {activeStep === 1 && (
-                <div style={{ justifyContent: 'center' }}>
-                    <div className="second-step-container">
-                    <p class="explanation">Please enter the courses you would like to take for the following semester</p>
-                    {showAlert && (
-                        <Alert severity="error">The course {alertText} has already been selected!</Alert>
-                    )}
-                    {showNullAlert && (
-                        <Alert severity="error">Please choose a minimum of at least 3 courses!</Alert>
-                    )}
-                    <div>
-                        {courseElements.map((element, index) => (
-                            <div key={index} className="autocomplete-row">
-                                <Autocomplete
-                                    disablePortal
-                                    id={`course-box-${index}`}
-                                    options={filteredSuggestions}
-                                    getOptionLabel={(option) => (option ? option.toString() : '')} // Use the option string directly as the label
-                                    sx={{ width: 300, marginTop: 2 }}
-                                    value={courseValues[index] || null}
-                                    onChange={(event, newValue) => handleAutocompleteChange(index, event, newValue)}
-                                    onInputChange={(event, newValue) => handleInputChange(event, newValue)}
-                                    renderInput={(params) => <TextField {...params} label={`Enter Course ${index + 1}`} style={{ width: '25vw' }} />}
-                                />
-                                {index > 2 && (
-                                    <IconButton
-                                        aria-label="delete"
-                                        size="small"
-                                        onClick={() => handleDelete(index)}
-                                        style={{ marginTop: '2vh' }}
-                                    >
-                                        <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z" />
-                                        </svg>
-                                    </IconButton>
-                                )}
-                            </div>
-                        ))}
+            <div className={`step-container`}>
+                {/* all in the same row */}
+                <Stack className='step-container' direction="row">
+                    {/* first step */}
+                    <div className={`first-step-container ${animationClass[0]}`}>
                         <div>
-                            <Button style={{ marginBlock: '2vh', color: 'black' }} color="primary" onClick={addCourse}>Add Course</Button>
+                            <p className="explanation">Please fill in the following options</p>
+                        </div>
+                        <div className="row">
+                            <p>Are you an undergraduate or graduate student?</p>
+                        </div>
+                        <div className="radio-row">
+                            <Radio {...controlGradProps('grad')} sx={radio_sx} />
+                            <span>Graduate</span>
+                        </div>
+                        <div className="radio-row">
+                            <Radio {...controlGradProps('undergrad')} sx={radio_sx} />
+                            <span>Undergraduate</span>
+                        </div>
+                        <div className="row">
+                            <p>Spring or Fall?</p>
+                        </div>
+                        <div className="radio-row">
+                            <Radio {...controlSemesterProps('fall')} sx={radio_sx} />
+                            <span>Fall</span>
+                        </div>
+                        <div className="radio-row">
+                            <Radio {...controlSemesterProps('spring')} sx={radio_sx} />
+                            <span>Spring</span>
+                        </div>
+                        <div className="radio-row">
+                            <Radio {...controlSemesterProps('summer')} sx={radio_sx} />
+                            <span>Summer</span>
+                        </div>
+                        <Button style={{ color: 'white', backgroundColor: 'black', width: '6.0vw' }} variant="contained" onClick={showQuestion}>Submit</Button>
+                    </div>
+                    {/* second step */}
+                    <div className={`second-step-container ${animationClass[1]}`}>
+                        <div>
+                            <p className="explanation">Please enter the courses you would like to take for the following semester</p>
+                            {showAlert && (
+                                <Alert severity="error">The course {alertText} has already been selected!</Alert>
+                            )}
+                            {showNullAlert && (
+                                <Alert severity="error">Please choose a minimum of at least 3 courses!</Alert>
+                            )}
+                            <div>
+                                {courseElements.map((element, index) => (
+                                    <div key={index} className="autocomplete-row">
+                                        <Autocomplete
+                                            disablePortal
+                                            id={`course-box-${index}`}
+                                            options={filteredSuggestions}
+                                            getOptionLabel={(option) => (option ? option.toString() : '')}
+                                            sx={{ width: 300, marginTop: 2 }}
+                                            value={courseValues[index] || null}
+                                            onChange={(event, newValue) => handleAutocompleteChange(index, event, newValue)}
+                                            onInputChange={(event, newValue) => handleInputChange(event, newValue)}
+                                            renderInput={(params) => <TextField {...params} label={`Enter Course ${index + 1}`} style={{ width: '25vw' }} />}
+                                        />
+                                        {index > 2 && (
+                                            <IconButton
+                                                aria-label="delete"
+                                                size="small"
+                                                onClick={() => handleDelete(index)}
+                                                style={{ marginTop: '2vh' }}
+                                            >
+                                                <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z" />
+                                                </svg>
+                                            </IconButton>
+                                        )}
+                                    </div>
+                                ))}
+                                <div>
+                                    <Button style={{ marginBlock: '2vh', color: 'black' }} color="primary" onClick={addCourse}>Add Course</Button>
+                                </div>
+                            </div>
+                            <Button style={{ margin:'5px', color: 'white', backgroundColor: 'black' }} variant='contained' onClick={showInput}>Click Me</Button>
                         </div>
                     </div>
-                    <Button style={{ color: 'white', backgroundColor: 'black' }} variant='contained' onClick={showInput}>Click Me</Button>
+                    <div className={`third-step-container ${animationClass[2]}`}>
+                    <p>Third slide</p>
+                    <h1>This is the third slide</h1>
+                    
                     </div>
-                </div>
-            )}
+                </Stack>
             </div>
+
             {activeStep === steps.length ? (
                 <React.Fragment>
                     <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>

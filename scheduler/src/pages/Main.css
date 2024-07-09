@@ -1,3 +1,7 @@
+.page {
+  max-width: 75%;
+}
+
 .main-title {
   color: rgb(15, 35, 102);
 }
@@ -19,6 +23,41 @@
 
 .explanation {
   color:rgb(15, 35, 102);
+}
+
+.step-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%; /* Ensure the container has a height */
+}
+
+.first-step-container,
+.second-step-container,
+.third-step-container {
+  position: relative;
+  width: 90%;
+  height: 100%; /* Ensure each step container occupies full height */
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  transition: transform 0.3s ease-in-out;
+}
+
+.slide-o {
+  transform: translateX(200%);
+}
+
+.slide-in {
+  transform: translateX(0);
+}
+
+.slide-out {
+  transform: translateX(-100%);
+}
+
+.slide-back {
+  transform: translateX(100%);
 }
 
 .row {

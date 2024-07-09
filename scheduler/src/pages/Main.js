@@ -19,6 +19,8 @@ import IconButton from '@mui/material/IconButton';
 import Radio from '@mui/material/Radio';
 import { keyframes } from '@mui/system';
 
+// backend uri
+const backend_uri = 'http://localhost:2000'
 // defining steps for page
 const steps = ['Questionnaire', 'Select Courses', 'Scheduler Builder'];
 
@@ -57,8 +59,6 @@ function Main() {
         }
         animationClass[activeStep] = 'slide-out';
         if (activeStep + 1 < steps.length) animationClass[activeStep + 1] = 'slide-in';
-        console.log(activeStep);
-        console.log(animationClass);
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
         setSkipped(newSkipped);
     }
@@ -73,6 +73,8 @@ function Main() {
             // it should never occur unless someone's actively trying to break something.
             throw new Error("You can't skip a step that isn't optional.");
         }
+        animationClass[activeStep] = 'slide-out';
+        if (activeStep + 1 < steps.length) animationClass[activeStep + 1] = 'slide-in';
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
         setSkipped((prevSkipped) => {
             const newSkipped = new Set(prevSkipped.values());
@@ -161,7 +163,7 @@ function Main() {
         // call API to receive list of courses available in db
         async function fetch_courses() {
             try {
-                const courses_response = await fetch('http://localhost:2000/courses');
+                const courses_response = await fetch(`${backend_uri}/courses`);
                 const courses_data = await courses_response.json();
                 const courses_reference = courses_data.payload;
                 const course_names = courses_reference.map((entry) => entry.course_name);
@@ -196,11 +198,21 @@ function Main() {
         name: 'semester-radio-button',
         inputProps: { 'aria-label': item }
     });
-    const showQuestion = () => {
+    const showQuestion = async () => {
         let output = {};
         output.gradOr = gradOr;
         output.semesterOr = semester;
-        console.log("Questionnaire output:", output);
+        try{
+            const response = await fetch(`${backend_uri}/questionnaire`, {
+                method: "POST",
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(output)
+            });
+            const data = await response.json();
+            console.log('This is the data:', data);
+        } catch (error) {
+            console.log('Encountered error during showQuestion function for call to /questionnaire API endpoint');
+        }
     };
     // button to add autocomplete DOM component
     const addCourse = () => {
@@ -262,7 +274,7 @@ function Main() {
         }
         setCourseValues(courseValues);
     }
-    function showInput() {
+    async function showInput() {
         const output = Object.values(courseValues);
         let count = 0;
         for (let i = 0; i < output.length; i++) {
@@ -275,6 +287,17 @@ function Main() {
         } else {
             console.log('Print:', courseValues);
             console.log('Course elements:', courseElements);
+            try{
+                const response = await fetch(`${backend_uri}/selection`, {
+                    method: "POST",
+                    headers: {"Content-Type":"application/json"},
+                    body: JSON.stringify(courseValues)
+                });
+                const data = await response.json();
+                console.log('/selection API call result:', data);
+            } catch (error) {
+                console.log('Encountered error during calling of /selection API endpoint for selected courses');
+            }
         };
     }
     return (
@@ -323,7 +346,7 @@ function Main() {
                             <span>Undergraduate</span>
                         </div>
                         <div className="row">
-                            <p>Spring or Fall?</p>
+                            <p>Which semester?</p>
                         </div>
                         <div className="radio-row">
                             <Radio {...controlSemesterProps('fall')} sx={radio_sx} />

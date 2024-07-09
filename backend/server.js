@@ -55,16 +55,18 @@ async function run() {
     }
 }
 run().catch(console.dir);
+// for building user data
+let user_input = {};
 // endpoint for returning all course names
 app.get('/courses', async (req, res) => {
-    let response = { message: '', payload: [] };
+    let response = { message: '', payload: [] }; // each js object should consist of a message (string) and a payload (anything)
     try {
         await client.connect();
         const db = client.db(mongo_database);
         const collection = db.collection(mongo_collection);
         const cursor = await collection.find({}, { projection: { _id: 0, reference: 1, course_name: 1 } });
         const package = await cursor.toArray();
-        response.message = 'Server completed request successfully';
+        response.message = 'API endpoint call to /courses successful';
         response.payload = package;
         res.status(200).send(response);
     } catch (e) {
@@ -75,3 +77,30 @@ app.get('/courses', async (req, res) => {
         await client.close();
     }
 })
+// endpoint for receiving questionnaire answers
+app.post('/questionnaire', (req, res) => {
+    let response = { message: '', payload: {}};
+    user_input.gradOr = req.body.gradOr;
+    user_input.semesterOr = req.body.semesterOr;
+    if (user_input.semesterOr !== undefined && user_input.gradOr !== undefined) {
+        response.message = 'API endpoint call to /questionnaire successful';
+        response.payload = user_input;
+        res.status(200).send(response); // return user_input
+    } else {
+        response.message = 'User input not recognized for /questionnaire API endpoint call';
+        res.status(500).send(response);
+    }
+});
+// endpoint for receiving course answers
+app.post('/selection', (req, res) => {
+    let response = { message: '', payload: {}};
+    user_input.selection = Object.values(req.body);
+    if (user_input.selection !== undefined && user_input.selection.length >= 3) {
+        response.message = 'API endpoint call to /selection successful';
+        response.payload = user_input;
+        res.status(200).send(response); // return user_input
+    } else {
+        response.message = 'Something went wrong during /selection API call';
+        res.status(500).send(response);
+    }
+});

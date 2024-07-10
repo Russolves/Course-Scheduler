@@ -52,15 +52,21 @@ function Main() {
         //     setActiveStep((prevActiveStep) => prevActiveStep + 1);
         //     setAnimationClass('slide-right');
         // }, 300); // adjust timeout to match duration of slide-out animation
-        let newSkipped = skipped;
-        if (isStepSkipped(activeStep)) {
-            newSkipped = new Set(newSkipped.values());
-            newSkipped.delete(activeStep); // 
+        let count = 0;
+        Object.values(courseValues).forEach((entry) => (entry !== null)? count += 1: null);
+        if (activeStep === 1 && count < 3) { // to ensure at least 3 courses have been chosen before moving on
+            setShowNullAlert(true);
+        } else {
+            let newSkipped = skipped;
+            if (isStepSkipped(activeStep)) {
+                newSkipped = new Set(newSkipped.values());
+                newSkipped.delete(activeStep); // 
+            }
+            animationClass[activeStep] = 'slide-out';
+            if (activeStep + 1 < steps.length) animationClass[activeStep + 1] = 'slide-in';
+            setActiveStep((prevActiveStep) => prevActiveStep + 1);
+            setSkipped(newSkipped);
         }
-        animationClass[activeStep] = 'slide-out';
-        if (activeStep + 1 < steps.length) animationClass[activeStep + 1] = 'slide-in';
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-        setSkipped(newSkipped);
     }
     const handleBack = () => {
         setActiveStep((prevActiveStep) => prevActiveStep - 1);
@@ -174,6 +180,26 @@ function Main() {
         }
         fetch_courses();
     }, []);
+    // everytime courseValues changes
+    useEffect(() => {
+        async function update_selection() {
+            try {
+                const response = await fetch(`${backend_uri}/selection`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(courseValues)
+                })
+                const data = await response.json();
+                console.log("Status:", data.message);
+                console.log(courseValues);
+            } catch (error) {
+                console.log('Something went wrong during the updating of useEffect update_selection:', error);
+            }
+        }
+        let count = 0;
+        Object.values(courseValues).forEach((entry) => (entry !== null) ? count += 1: null);
+        if (count >= 3) update_selection();
+    }, [JSON.stringify(courseValues)])
     // selected values
     const handlegradChange = (event) => {
         setGradOr(event.target.value); // empty string
@@ -202,10 +228,10 @@ function Main() {
         let output = {};
         output.gradOr = gradOr;
         output.semesterOr = semester;
-        try{
+        try {
             const response = await fetch(`${backend_uri}/questionnaire`, {
                 method: "POST",
-                headers: {'Content-Type':'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(output)
             });
             const data = await response.json();
@@ -287,10 +313,10 @@ function Main() {
         } else {
             console.log('Print:', courseValues);
             console.log('Course elements:', courseElements);
-            try{
+            try {
                 const response = await fetch(`${backend_uri}/selection`, {
                     method: "POST",
-                    headers: {"Content-Type":"application/json"},
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(courseValues)
                 });
                 const data = await response.json();
@@ -404,13 +430,13 @@ function Main() {
                                     <Button style={{ marginBlock: '2vh', color: 'black' }} color="primary" onClick={addCourse}>Add Course</Button>
                                 </div>
                             </div>
-                            <Button style={{ margin:'5px', color: 'white', backgroundColor: 'black' }} variant='contained' onClick={showInput}>Click Me</Button>
+                            <Button style={{ margin: '5px', color: 'white', backgroundColor: 'black' }} variant='contained' onClick={showInput}>Click Me</Button>
                         </div>
                     </div>
                     <div className={`third-step-container ${animationClass[2]}`}>
-                    <p>Third slide</p>
-                    <h1>This is the third slide</h1>
-                    
+                        <p>Third slide</p>
+                        <h1>This is the third slide</h1>
+
                     </div>
                 </Stack>
             </div>

@@ -91,7 +91,7 @@ app.post('/questionnaire', (req, res) => {
         res.status(500).send(response);
     }
 });
-// endpoint for receiving course answers
+// endpoint for receiving course selection answers
 app.post('/selection', (req, res) => {
     let response = { message: '', payload: {}};
     user_input.selection = Object.values(req.body);

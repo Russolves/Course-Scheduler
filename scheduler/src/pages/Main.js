@@ -38,6 +38,7 @@ function Main() {
     const [gradOr, setGradOr] = useState(''); // empty string ('grad' for graduate, 'undergraduate' ...)
     const [semester, setSemester] = useState('') // empty string ('spring', 'fall', 'summer'...)
     const [animationClass, setAnimationClass] = useState(['slide-in', 'slide-o', 'slide-back']); // for animating the sliding window between steps
+    const [stepPressed, setStepPressed] = useState('');
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -47,6 +48,7 @@ function Main() {
         return skipped.has(step);
     }
     const handleNext = () => {
+        setStepPressed('0.35s forwards');
         // setAnimationClass('slide-left');
         // setTimeout(() => {
         //     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -69,6 +71,7 @@ function Main() {
         }
     }
     const handleBack = () => {
+        setStepPressed('0s forwards');
         setActiveStep((prevActiveStep) => prevActiveStep - 1);
         (activeStep === 1) ? animationClass[activeStep] = 'slide-o' : animationClass[activeStep] = 'slide-back';
         if (activeStep - 1 >= 0) animationClass[activeStep - 1] = 'slide-in';
@@ -111,7 +114,7 @@ function Main() {
         },
         [`&.${stepConnectorClasses.active}`]: {
             [`& .${stepConnectorClasses.line}`]: {
-                animation: `${fillAnimation} 0.35s forwards`,
+                animation: `${fillAnimation} ${stepPressed}`,
             },
         },
         [`&.${stepConnectorClasses.completed}`]: {
@@ -270,6 +273,7 @@ function Main() {
     }
     // to optimize suggestions
     const handleInputChange = (event, newInputValue) => {
+        setStepPressed('0s forwards');
         setShowAlert(false);
         setShowNullAlert(false);
         try {

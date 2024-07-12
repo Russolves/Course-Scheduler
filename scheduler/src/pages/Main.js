@@ -192,9 +192,7 @@ function Main() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(courseValues)
                 })
-                const data = await response.json();
-                console.log("Status:", data.message);
-                console.log(courseValues);
+                const data = await response.json(); // data.message contains the status of the message
             } catch (error) {
                 console.log('Something went wrong during the updating of useEffect update_selection:', error);
             }
@@ -438,8 +436,10 @@ function Main() {
                         </div>
                     </div>
                     <div className={`third-step-container ${animationClass[2]}`}>
-                        <p>Third slide</p>
-                        <h1>This is the third slide</h1>
+                        <p className="explanation">Schedule:</p>
+                        {Object.values(courseValues).map((value, index) => (
+                            <p key={index}>{value}</p>
+                        ))}
 
                     </div>
                 </Stack>

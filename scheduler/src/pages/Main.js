@@ -438,6 +438,7 @@ function Main() {
                             <Button style={{ margin: '5px', color: 'white', backgroundColor: 'black' }} variant='contained' onClick={showInput}>Click Me</Button>
                         </div>
                     </div>
+                    {/* third step */}
                     <div className={`third-step-container ${animationClass[2]}`}>
                         <p className="explanation">Schedule:</p>
                         {Object.values(courseValues).map((value, index) => (

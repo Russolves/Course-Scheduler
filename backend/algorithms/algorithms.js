@@ -41,8 +41,34 @@ const khan_algorithm = (ref_prereq) => {
     return sort_output
 };
 
-const topological_sort = (sort_output, course_ls) => {
-    // console.log(sort_output.slice(0, 10));
+const topological_sort = (course_ls, ref_prereq, course_ref) => {
+    find_combinations(course_ls, ref_prereq, course_ref);
+};
+
+const find_combinations = (course_ls, ref_prereq, course_ref) => {
+    let q = [];
+    course_ls.forEach((entry) => q.push(course_ref[entry.toString()]));
+    let output = {};
+    let seen = new Set(); // set for seen courses
+    while (q.length > 0) {
+        let course = q.shift();
+        (course !== undefined) ? null: course = [];
+        if (!seen.has(course)) {
+            let ls = [];
+            (ref_prereq[course.toString()] !== undefined) ? ls = ref_prereq[course.toString()] : null;
+            output[course] = ls;
+            seen.add(course);
+            // append to queue
+            if (ls.length > 0) {
+                for (l of ls) {
+                    for (code of l) {
+                        q.push(parseInt(code));
+                    }
+                }
+            }
+        };
+    };
+    console.log(output);
 };
 
 module.exports = {

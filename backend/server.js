@@ -24,7 +24,7 @@ const client = new MongoClient(uri, {
     }
 });
 let ref_course = {}; // for reference:course_code object
-let course_ref = {}; // for course_code reference object
+let course_ref = {}; // for course_code: reference object
 let ref_prereq = {}; // {reference: [prereq1code, prereq2code...]}
 let courses_return = []; // for API
 
@@ -38,8 +38,8 @@ async function run() {
         const collection = db.collection(mongo_collection);
         const cursor = await collection.find({}, { projection: { _id: 0 } });
         data = await cursor.toArray();
-        data.map((element, index) => ref_course[element.course_name] = element.reference);
-        data.map((entry, index) => course_ref[entry.reference] = entry.course_name);
+        data.map((element, index) => course_ref[element.course_name] = element.reference);
+        data.map((entry, index) => ref_course[entry.reference] = entry.course_name);
         data.map((entry, index) => {
             const obj = { course_name: entry.course_name, reference: entry.reference };
             courses_return.push(obj);
@@ -58,7 +58,7 @@ async function startServer() {
     const data = await run(); // contains everything within the database (has to be run before app.use)
     const sort_output = khan_algorithm(ref_prereq);
     // Pass the necessary arguments to routes
-    app.use('', inputRoutes(client, courses_return, sort_output, data));
+    app.use('', inputRoutes(client, courses_return, sort_output, ref_prereq, course_ref, data));
 
     // start server
     const PORT = process.env.PORT || 2000;

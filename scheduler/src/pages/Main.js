@@ -56,6 +56,9 @@ function Main() {
         // }, 300); // adjust timeout to match duration of slide-out animation
         let count = 0;
         Object.values(courseValues).forEach((entry) => (entry !== null)? count += 1: null);
+        if (activeStep === 0) {
+            showQuestion();
+        };
         if (activeStep === 1 && count < 3) { // to ensure at least 3 courses have been chosen before moving on
             setShowNullAlert(true);
         } else {

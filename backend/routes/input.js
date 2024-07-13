@@ -2,7 +2,8 @@ const express = require('express');
 const { all_courses, questionnaire, course_selection } = require("../controllers/input.js");
 const router = express.Router();
 
-module.exports = (client, courses_return, sort_output) => {
+// passing arguments (from server.js) into route functions
+module.exports = (client, courses_return, sort_output, data) => {
     router.get('/courses', async (req, res) => {
         await all_courses(req, res, client, courses_return);
     });

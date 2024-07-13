@@ -46,6 +46,6 @@ const topological_sort = (sort_output, course_ls) => {
 };
 
 module.exports = {
-    khan_algorithm: (ref_prereq) => khan_algorithm(ref_prereq),
-    topological_sort: (sort_output, course_ls) => topological_sort(sort_output, course_ls)
+    khan_algorithm,
+    topological_sort
 };

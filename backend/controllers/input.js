@@ -2,7 +2,6 @@ const { topological_sort } = require('../algorithms/algorithms.js');
 // for constructing user_input
 let user_input = {};
 
-
 // endpoint for returning all course names
 const all_courses = async (req, res, client, courses_return) => {
     let response = { message: '', payload: [] }; // each js object should consist of a message (string) and a payload (anything)
@@ -40,7 +39,7 @@ const course_selection = async (req, res, sort_output) => {
     user_input.selection = Object.values(req.body);
     if (user_input.selection !== undefined && user_input.selection.length >= 3) {
         response.message = 'API endpoint call to /selection successful';
-        topological_sort(sort_output, user_input.selection);
+        topological_sort(sort_output, user_input.selection); // apply to user chosen courses
         response.payload = user_input;
         res.status(200).json(response); // return user_input
     } else {

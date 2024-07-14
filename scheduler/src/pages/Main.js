@@ -448,7 +448,6 @@ function Main() {
                     </div>
                 </Stack>
             </div>
-
             {activeStep === steps.length ? (
                 <React.Fragment>
                     <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>

@@ -68,6 +68,7 @@ const find_combinations = (course_ls, ref_prereq, course_ref) => {
             }
         };
     };
+    console.log(output);
 };
 
 module.exports = {

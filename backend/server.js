@@ -26,6 +26,7 @@ const client = new MongoClient(uri, {
 let ref_course = {}; // for reference:course_code object
 let course_ref = {}; // for course_code: reference object
 let ref_prereq = {}; // {reference: [prereq1code, prereq2code...]}
+let course_prereq = {}; // unlike the previous entry, this one is with course names {reference: [prereq1course, prereq2course....]}
 let courses_return = []; // for API
 
 // initial run to ensure server is connected to MongoDB database
@@ -45,6 +46,7 @@ async function run() {
             courses_return.push(obj);
         });
         data.map((element, index) => ref_prereq[element.reference] = element.prereq_reference);
+        data.map((entry, index) => course_prereq[entry.reference] = entry.prereq_courses);
         console.log("Pinged for deployment. Connection to MongoDB + data initialization successful!");
     } catch (error) {
         console.log('An error has occurred during initial contact with mongodb database:', error);
@@ -56,9 +58,9 @@ async function run() {
 // initializing server
 async function startServer() {
     const data = await run(); // contains everything within the database (has to be run before app.use)
-    const sort_output = khan_algorithm(ref_prereq);
+    // const sort_output = khan_algorithm(ref_prereq); // uncomment later if required
     // Pass the necessary arguments to routes
-    app.use('', inputRoutes(client, courses_return, sort_output, ref_prereq, course_ref, data));
+    app.use('', inputRoutes(client, courses_return, ref_prereq, course_ref, course_prereq, data));
 
     // start server
     const PORT = process.env.PORT || 2000;

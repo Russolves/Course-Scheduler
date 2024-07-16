@@ -1,4 +1,4 @@
-const khan_algorithm = (ref_prereq) => {
+const khan_algorithm = (ref_prereq, ref_output) => {
     let adj = [];
     // for constructing adj ls for topological sorting
     for (key in ref_prereq) {
@@ -38,21 +38,30 @@ const khan_algorithm = (ref_prereq) => {
         }
     };
     sort_output.reverse(); // reverse for correct order
-    return sort_output
+    let final_output = [];
+    sort_output.forEach((course) => { // retain only the courses specified
+        if (Object.keys(ref_output).includes(course.toString())) final_output.push(course)
+    });
+    return final_output;
 };
 
-const topological_sort = (course_ls, ref_prereq, course_ref) => {
-    find_combinations(course_ls, ref_prereq, course_ref);
+const topological_sort = (course_ls, ref_prereq, course_ref, course_prereq) => {
+    const output = find_combinations(course_ls, ref_prereq, course_ref, course_prereq);
+    const ref_output = output[0];
+    const add_output = output[1];
+    // if (ref_output !== undefined) console.log(khan_algorithm(ref_prereq, ref_output)); // original code
+
 };
 
-const find_combinations = (course_ls, ref_prereq, course_ref) => {
+const find_combinations = (course_ls, ref_prereq, course_ref, course_prereq) => {
     let q = [];
     course_ls.forEach((entry) => q.push(course_ref[entry.toString()]));
     let output = {};
+    let add_ref = {};
     let seen = new Set(); // set for seen courses
     while (q.length > 0) {
         let course = q.shift();
-        (course !== undefined) ? null: course = [];
+        (course !== undefined) ? null : course = [];
         if (!seen.has(course)) {
             let ls = [];
             (ref_prereq[course.toString()] !== undefined) ? ls = ref_prereq[course.toString()] : null;
@@ -60,15 +69,18 @@ const find_combinations = (course_ls, ref_prereq, course_ref) => {
             seen.add(course);
             // append to queue
             if (ls.length > 0) {
-                for (l of ls) {
-                    for (code of l) {
-                        q.push(parseInt(code));
+                for (index in ls) {
+                    add_ref[course] = course_prereq[course]; // additional description for courses with a status of -1 (unknown)
+                    for (code_in in ls[index]) {
+                        q.push(parseInt(ls[index][code_in])); // push other courses into queue for bfs
                     }
                 }
             }
         };
     };
     console.log(output);
+    console.log(add_ref);
+    return [output, add_ref]; // return output and add_ref
 };
 
 module.exports = {

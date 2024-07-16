@@ -34,19 +34,19 @@ const questionnaire = async (req, res) => {
 };
 
 // endpoint for receiving course selection answers
-const course_selection = async (req, res, sort_output, ref_prereq, course_ref) => {
+const course_selection = async (req, res, ref_prereq, course_ref, course_prereq) => {
     let response = { message: '', payload: {} };
     user_input.selection = Object.values(req.body);
     if (user_input.selection !== undefined && user_input.selection.length >= 3) {
         response.message = 'API endpoint call to /selection successful';
-        topological_sort(user_input.selection, ref_prereq, course_ref); // apply to user chosen courses
+        topological_sort(user_input.selection, ref_prereq, course_ref, course_prereq); // apply to user chosen courses
         response.payload = user_input;
         res.status(200).json(response); // return user_input
     } else {
         response.message = 'Something went wrong during /selection API call';
         res.status(500).json(response);
     }
-    console.log(user_input);
+    user_input.selection.forEach((entry) => console.log(`${entry}: ${course_ref[entry]}`));
 }
 
 module.exports = {

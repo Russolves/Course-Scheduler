@@ -208,16 +208,20 @@ function Main() {
             }
         };
         async function initial_prereq() {
-            const data = await update_selection(); // returned in order ls based on initial_suggestion for course order, ref_prereq, course_prereq
-            const initial_suggestion = data.payload[0];
-            const ref_prereq = data.payload[1];
-            const course_prereq = data.payload[2];
-            let prereq_ls = [];
-            initial_suggestion.forEach((entry) => prereq_ls.push(refCourse[entry]));
-            console.log('Initial suggestion:', initial_suggestion);
-            console.log('Ref_prereq:', ref_prereq);
-            console.log('Course_prereq:', course_prereq);
-            setPrereqList(prereq_ls); // set prereqList
+            try {
+                const data = await update_selection(); // returned in order ls based on initial_suggestion for course order, ref_prereq, course_prereq
+                const initial_suggestion = data.payload[0];
+                const ref_prereq = data.payload[1];
+                const course_prereq = data.payload[2];
+                let prereq_ls = [];
+                initial_suggestion.forEach((entry) => prereq_ls.push(refCourse[entry]));
+                console.log('Initial suggestion:', initial_suggestion);
+                console.log('Ref_prereq:', ref_prereq);
+                console.log('Course_prereq:', course_prereq);
+                setPrereqList(prereq_ls); // set prereqList
+            } catch (error) {
+                console.log('Something went wrong during the initial_prereq async function call for reflecting user course changes:', error);
+            }
         };
         let count = 0;
         Object.values(courseValues).forEach((entry) => (entry !== null) ? count += 1 : null);

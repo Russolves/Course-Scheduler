@@ -39,6 +39,8 @@ function Main() {
     const [semester, setSemester] = useState('') // empty string ('spring', 'fall', 'summer'...)
     const [animationClass, setAnimationClass] = useState(['slide-in', 'slide-o', 'slide-back']); // for animating the sliding window between steps
     const [stepPressed, setStepPressed] = useState('');
+    const [prereqList, setPrereqList] = useState([]); // for prereqs list after backend has been set
+    const [refCourse, setRefCourse] = useState({}); // for converting references back to course names ({reference:course_name})
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -55,7 +57,7 @@ function Main() {
         //     setAnimationClass('slide-right');
         // }, 300); // adjust timeout to match duration of slide-out animation
         let count = 0;
-        Object.values(courseValues).forEach((entry) => (entry !== null)? count += 1: null);
+        Object.values(courseValues).forEach((entry) => (entry !== null) ? count += 1 : null);
         if (activeStep === 0) {
             showQuestion();
         };
@@ -177,7 +179,11 @@ function Main() {
             try {
                 const courses_response = await fetch(`${backend_uri}/courses`);
                 const courses_data = await courses_response.json();
-                const courses_reference = courses_data.payload;
+                const courses_reference = courses_data.payload[0];
+                const ref_course = courses_data.payload[1];
+                for (let key in ref_course) {
+                    refCourse[key] = ref_course[key];
+                };
                 const course_names = courses_reference.map((entry) => entry.course_name);
                 setCourseSuggestions(course_names);
             } catch (error) {
@@ -196,13 +202,28 @@ function Main() {
                     body: JSON.stringify(courseValues)
                 })
                 const data = await response.json(); // data.message contains the status of the message
+                return data;
             } catch (error) {
                 console.log('Something went wrong during the updating of useEffect update_selection:', error);
             }
-        }
+        };
+        async function initial_prereq() {
+            const data = await update_selection(); // returned in order ls based on initial_suggestion for course order, ref_prereq, course_prereq
+            const initial_suggestion = data.payload[0];
+            const ref_prereq = data.payload[1];
+            const course_prereq = data.payload[2];
+            let prereq_ls = [];
+            initial_suggestion.forEach((entry) => prereq_ls.push(refCourse[entry]));
+            console.log('Initial suggestion:', initial_suggestion);
+            console.log('Ref_prereq:', ref_prereq);
+            console.log('Course_prereq:', course_prereq);
+            setPrereqList(prereq_ls); // set prereqList
+        };
         let count = 0;
-        Object.values(courseValues).forEach((entry) => (entry !== null) ? count += 1: null);
-        if (count >= 3) update_selection();
+        Object.values(courseValues).forEach((entry) => (entry !== null) ? count += 1 : null);
+        if (count >= 3) {
+            initial_prereq(); // call async function only when count >= 3
+        };
     }, [JSON.stringify(courseValues)])
     // selected values
     const handlegradChange = (event) => {
@@ -441,7 +462,7 @@ function Main() {
                     {/* third step */}
                     <div className={`third-step-container ${animationClass[2]}`}>
                         <p className="explanation">Schedule:</p>
-                        {Object.values(courseValues).map((value, index) => (
+                        {Object.values(prereqList).map((value, index) => (
                             <p key={index}>{value}</p>
                         ))}
 

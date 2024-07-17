@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   margin-bottom: 1vh;
-  max-width: 30vw;
+  max-width: 20vw;
 }
 
 .autocomplete-row .MuiAutocomplete-root {
@@ -18,7 +18,7 @@
 }
 
 .autocomplete-row .MuiIconButton-root {
-  margin-left: 8px;
+  margin-left: 1.5rem;
 }
 
 .explanation {

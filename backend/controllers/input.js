@@ -39,8 +39,8 @@ const course_selection = async (req, res, ref_prereq, course_ref, course_prereq)
     user_input.selection = Object.values(req.body);
     if (user_input.selection !== undefined && user_input.selection.length >= 3) {
         response.message = 'API endpoint call to /selection successful';
-        topological_sort(user_input.selection, ref_prereq, course_ref, course_prereq); // apply to user chosen courses
-        response.payload = user_input;
+        const result = topological_sort(user_input.selection, ref_prereq, course_ref, course_prereq); // apply to user chosen courses
+        response.payload = result; // return based on user_input course order, ref_prereq, course_prereq in that order
         res.status(200).json(response); // return user_input
     } else {
         response.message = 'Something went wrong during /selection API call';

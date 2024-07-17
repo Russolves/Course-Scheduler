@@ -49,10 +49,37 @@ const topological_sort = (course_ls, ref_prereq, course_ref, course_prereq) => {
     const output = find_combinations(course_ls, ref_prereq, course_ref, course_prereq);
     const ref_output = output[0];
     const add_output = output[1];
-    // if (ref_output !== undefined) console.log(khan_algorithm(ref_prereq, ref_output)); // original code
-
+    // const all_combinations = generate_combinations(ref_output, add_output);
+    // console.log('All combinations:', all_combinations.slice(0, 5));
+    if (ref_output !== undefined) return [khan_algorithm(ref_prereq, ref_output), ref_output, add_output]; // return based on user_input course order, ref_prereq, course_prereq in that order
 };
 
+// recursive function for dps on course combinations
+const generate_combinations = (ref_output, add_output) => {
+    const keys = Object.keys(ref_output); // list of all keys in ref_output
+    let result = [];
+    let add_result = [];
+
+    function dfs(current_combination, depth, add_obj) {
+        if (depth === keys.length) {
+            result.push({...current_combination});
+            add_result.push({...add_obj});
+            return;
+        }
+        const key = keys[depth];
+        let valueArray = ref_output[key];
+        (valueArray.length === 0) ? valueArray = [[]] : null;
+        for (let index in valueArray) {
+            if (Object.keys(add_output).includes(key) || valueArray[index].includes(-1)) add_obj[key] = add_output[key][index]; // to ensure courses whose prereqs contain a -1 combination are specified in add_result
+            current_combination[key] = valueArray[index];
+            dfs(current_combination, depth + 1, add_obj);
+        }
+    };
+    dfs({}, 0, {}); // call function
+    console.log(add_result.slice(0, 5));
+    return result;
+};
+// function to return course order (through ref) and additional output (course code) from user_input
 const find_combinations = (course_ls, ref_prereq, course_ref, course_prereq) => {
     let q = [];
     course_ls.forEach((entry) => q.push(course_ref[entry.toString()]));
@@ -78,8 +105,8 @@ const find_combinations = (course_ls, ref_prereq, course_ref, course_prereq) => 
             }
         };
     };
-    console.log(output);
-    console.log(add_ref);
+    // console.log('Ref output:', output);
+    // console.log('Additional output:', add_ref);
     return [output, add_ref]; // return output and add_ref
 };
 

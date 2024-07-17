@@ -58,9 +58,8 @@ async function run() {
 // initializing server
 async function startServer() {
     const data = await run(); // contains everything within the database (has to be run before app.use)
-    // const sort_output = khan_algorithm(ref_prereq); // uncomment later if required
     // Pass the necessary arguments to routes
-    app.use('', inputRoutes(client, courses_return, ref_prereq, course_ref, course_prereq, data));
+    app.use('', inputRoutes(client, courses_return, ref_prereq, course_ref, course_prereq, ref_course, data));
 
     // start server
     const PORT = process.env.PORT || 2000;

@@ -3,11 +3,11 @@ const { topological_sort } = require('../algorithms/algorithms.js');
 let user_input = {};
 
 // endpoint for returning all course names
-const all_courses = async (req, res, client, courses_return) => {
+const all_courses = async (req, res, client, courses_return, ref_course) => {
     let response = { message: '', payload: [] }; // each js object should consist of a message (string) and a payload (anything)
     try {
         response.message = 'API endpoint call to /courses successful';
-        response.payload = courses_return;
+        response.payload = [courses_return, ref_course]; // first being courses_return, second being ref_course
         res.status(200).json(response);
     } catch (e) {
         console.log('An error occurred during calling /courses endpoint');

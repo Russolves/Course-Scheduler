@@ -47,10 +47,28 @@ const course_selection = async (req, res, ref_prereq, course_ref, course_prereq)
         res.status(500).json(response);
     }
     user_input.selection.forEach((entry) => console.log(`${entry}: ${course_ref[entry]}`));
-}
+};
+
+// endpoint for checking whether user input aligns with their chosen courses
+const preference_check = async (req, res, course_ref, data) => {
+    let response = { message: '', payload: {gradOr: true, semesterOr: true} };
+    const newCourse = req.body.newCourse;
+    const ref = course_ref[newCourse];
+    if (ref === undefined) {
+        response.message = `The course ${newCourse} does not seem to have a corresponding reference number within db`;
+        res.status(200).json(response);
+    } else {
+        const course_data = data.filter((entry) => entry.reference === ref)[0];
+        if (course_data.grad !== undefined && user_input.gradOr !== '' && user_input.gradOr !== course_data.grad.toString()) response.payload.gradOr = false; // check if an undergrad is trying to take a grad course or if a grad student is trying to take an undergrad course
+        if (course_data.time_offered !== undefined && user_input.semesterOr !== '' && !(course_data.time_offered.includes(user_input.semesterOr))) response.payload.semesterOr = false;
+        response.message = 'Preference check with backend successful!';
+        res.status(200).json(response);
+    };
+};
 
 module.exports = {
     all_courses,
     questionnaire,
-    course_selection
+    course_selection,
+    preference_check,
 }

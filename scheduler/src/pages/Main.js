@@ -18,6 +18,7 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Radio from '@mui/material/Radio';
 import { keyframes } from '@mui/system';
+import Snackbar from '@mui/material/Snackbar';
 
 // backend uri
 const backend_uri = 'http://localhost:2000'
@@ -41,6 +42,8 @@ function Main() {
     const [stepPressed, setStepPressed] = useState('');
     const [prereqList, setPrereqList] = useState([]); // for prereqs list after backend has been set
     const [refCourse, setRefCourse] = useState({}); // for converting references back to course names ({reference:course_name})
+    const [snackbarStatusGradOr, setSnackbarStatusGradOr] = useState(false); // used for answering whether use input in questionnaire aligns with courses chosen
+    const [snackbarStatusSemester, setSnackbarStatusSemester] = useState(false);
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -223,6 +226,7 @@ function Main() {
                 console.log('Something went wrong during the initial_prereq async function call for reflecting user course changes:', error);
             }
         };
+        // checking if input reaches at least 3 courses
         let count = 0;
         Object.values(courseValues).forEach((entry) => (entry !== null) ? count += 1 : null);
         if (count >= 3) {
@@ -297,19 +301,51 @@ function Main() {
             [index]: newValue,
         }));
     }
-    // to optimize suggestions
-    const handleInputChange = (event, newInputValue) => {
+    // snackbar close
+    const handleGradOrClose = (event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setSnackbarStatusGradOr(false);
+    };
+    const handleSemesterOrClose = (event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setSnackbarStatusSemester(false);
+    }
+    const handleBothClose = (event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setSnackbarStatusGradOr(false);
+        setSnackbarStatusSemester(false);
+    }
+    // to optimize suggestions and handle snackbar
+    const handleInputChange = async (event, newInputValue) => {
         setStepPressed('0s forwards');
         setShowAlert(false);
         setShowNullAlert(false);
         try {
+            // check for whether user input in questionnaire aligns with courses chosen
+            if (courseSuggestions.includes(newInputValue)) {
+                let packet = { newCourse: newInputValue };
+                const response = await fetch(`${backend_uri}/check`, {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(packet)
+                });
+                const data = await response.json();
+                if (data.payload.gradOr === false) setSnackbarStatusGradOr(true);
+                if (data.payload.semesterOr === false) setSnackbarStatusSemester(true);
+            };
             // if null course_names exist within db make sure suggestion filters them out
             const filtered = courseSuggestions.filter((suggestion) =>
                 suggestion && suggestion.toLowerCase().includes(newInputValue.toLowerCase())
             ).slice(0, 15); // limit number of suggestions
             setFilteredSuggestions(filtered);
         } catch (error) {
-            console.log('Error in handleInputChange:', error);
+            console.log('Error in handleInputChange, could be /check API endpoint error:', error);
         }
     }
     // for deletion
@@ -394,11 +430,11 @@ function Main() {
                             <p>Are you an undergraduate or graduate student?</p>
                         </div>
                         <div className="radio-row">
-                            <Radio {...controlGradProps('grad')} sx={radio_sx} />
+                            <Radio {...controlGradProps('true')} sx={radio_sx} />
                             <span>Graduate</span>
                         </div>
                         <div className="radio-row">
-                            <Radio {...controlGradProps('undergrad')} sx={radio_sx} />
+                            <Radio {...controlGradProps('false')} sx={radio_sx} />
                             <span>Undergraduate</span>
                         </div>
                         <div className="row">
@@ -503,6 +539,48 @@ function Main() {
                     </Box>
                 </React.Fragment>
             )}
+            {snackbarStatusSemester === false && (
+                <Snackbar open={snackbarStatusGradOr} autoHideDuration={6000} onClose={handleGradOrClose}>
+                    <Alert
+                        onClose={handleGradOrClose}
+                        severity="warning"
+                        variant="filled"
+                        sx={{ width: '100%' }}
+                    >
+                        {gradOr === 'false'
+                            ? "As an undergrad you might want to check before taking a grad class"
+                            : 'As a grad student you might want to check before taking an undergrad class'}
+                    </Alert>
+                </Snackbar>
+            )}
+            {snackbarStatusGradOr === false && (
+                <Snackbar open={snackbarStatusSemester} autoHideDuration={6000} onClose={handleSemesterOrClose}>
+                    <Alert
+                        onClose={handleSemesterOrClose}
+                        severity="warning"
+                        variant="filled"
+                        sx={{ width: '100%' }}
+                    >
+                        Course chosen is not being offered for {semester} semester
+                    </Alert>
+                </Snackbar>
+            )}
+            <Snackbar open={snackbarStatusGradOr && snackbarStatusSemester} autoHideDuration={6000} onClose={handleBothClose}>
+                <Alert
+                    onClose={handleBothClose}
+                    severity="warning"
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    <div>
+                        {gradOr === 'false'
+                            ? "As an undergrad you might want to check before taking a grad class"
+                            : 'As a grad student you might want to check before taking an undergrad class'}
+                        <br />
+                        Course chosen is not being offered for {semester} semester
+                    </div>
+                </Alert>
+            </Snackbar>
         </div>
     );
 }

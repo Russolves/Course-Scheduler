@@ -1,4 +1,5 @@
-FROM node:20.6.1
+# Use miminum distro linux system to run docker
+FROM node:20.6.1-alpine
 
 WORKDIR /usr/src/app
 

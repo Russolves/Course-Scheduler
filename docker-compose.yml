@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "2000:2000"
+    volumes:
+      - ./backend:/usr/src/app
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  frontend:
+    build: ./scheduler
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./scheduler:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true # To ensure changes are reflected for React

@@ -1,5 +1,5 @@
 # Official Node.js image
-FROM node:20.6.1
+FROM node:20.6.1-alpine
 
 # Create and change to backend app directory
 WORKDIR /usr/src/app

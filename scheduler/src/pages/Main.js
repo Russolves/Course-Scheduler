@@ -302,25 +302,15 @@ function Main() {
         }));
     }
     // snackbar close
-    const handleGradOrClose = (event, reason) => {
-        if (reason === 'clickaway') {
-            return;
-        }
-        setSnackbarStatusGradOr(false);
-    };
-    const handleSemesterOrClose = (event, reason) => {
-        if (reason === 'clickaway') {
-            return;
-        }
-        setSnackbarStatusSemester(false);
-    }
     const handleBothClose = (event, reason) => {
         if (reason === 'clickaway') {
             return;
         }
         setSnackbarStatusGradOr(false);
         setSnackbarStatusSemester(false);
-    }
+    };
+    // controlling snackbar open
+    const bothSnackbarStatus = snackbarStatusGradOr || snackbarStatusSemester;
     // to optimize suggestions and handle snackbar
     const handleInputChange = async (event, newInputValue) => {
         setStepPressed('0s forwards');
@@ -539,33 +529,7 @@ function Main() {
                     </Box>
                 </React.Fragment>
             )}
-            {snackbarStatusSemester === false && (
-                <Snackbar open={snackbarStatusGradOr} autoHideDuration={6000} onClose={handleGradOrClose}>
-                    <Alert
-                        onClose={handleGradOrClose}
-                        severity="warning"
-                        variant="filled"
-                        sx={{ width: '100%' }}
-                    >
-                        {gradOr === 'false'
-                            ? "As an undergrad you might want to check before taking a grad class"
-                            : 'As a grad student you might want to check before taking an undergrad class'}
-                    </Alert>
-                </Snackbar>
-            )}
-            {snackbarStatusGradOr === false && (
-                <Snackbar open={snackbarStatusSemester} autoHideDuration={6000} onClose={handleSemesterOrClose}>
-                    <Alert
-                        onClose={handleSemesterOrClose}
-                        severity="warning"
-                        variant="filled"
-                        sx={{ width: '100%' }}
-                    >
-                        Course chosen is not being offered for {semester} semester
-                    </Alert>
-                </Snackbar>
-            )}
-            <Snackbar open={snackbarStatusGradOr && snackbarStatusSemester} autoHideDuration={6000} onClose={handleBothClose}>
+            <Snackbar open={bothSnackbarStatus} autoHideDuration={6000} onClose={handleBothClose}>
                 <Alert
                     onClose={handleBothClose}
                     severity="warning"
@@ -573,11 +537,16 @@ function Main() {
                     sx={{ width: '100%' }}
                 >
                     <div>
-                        {gradOr === 'false'
-                            ? "As an undergrad you might want to check before taking a grad class"
-                            : 'As a grad student you might want to check before taking an undergrad class'}
-                        <br />
-                        Course chosen is not being offered for {semester} semester
+                        {snackbarStatusGradOr &&
+                            (gradOr === 'false'
+                                ? "As an undergrad you might want to check before taking a grad class"
+                                : "As a grad student you might want to check before taking an undergrad class"
+                            )
+                        }
+                        {snackbarStatusGradOr && snackbarStatusSemester && (<br />)}
+                        {snackbarStatusSemester &&
+                            `Course chosen is not being offered for ${semester} semester`
+                        }
                     </div>
                 </Alert>
             </Snackbar>

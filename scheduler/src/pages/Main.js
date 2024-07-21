@@ -76,6 +76,7 @@ function Main() {
             if (activeStep + 1 < steps.length) animationClass[activeStep + 1] = 'slide-in';
             setActiveStep((prevActiveStep) => prevActiveStep + 1);
             setSkipped(newSkipped);
+            // async call for chosen courses details
         }
     }
     const handleBack = () => {
@@ -219,14 +220,14 @@ function Main() {
                 let prereq_ls = [];
                 initial_suggestion.forEach((entry) => prereq_ls.push(refCourse[entry]));
                 console.log('Initial suggestion:', initial_suggestion);
-                console.log('Ref_prereq:', ref_prereq);
-                console.log('Course_prereq:', course_prereq);
+                console.log('Ref_prereq:', ref_prereq); // prereqs based on references
+                console.log('Course_prereq:', course_prereq); // additional supplement if course is -1 for reference
                 setPrereqList(prereq_ls); // set prereqList
             } catch (error) {
                 console.log('Something went wrong during the initial_prereq async function call for reflecting user course changes:', error);
             }
         };
-        // checking if input reaches at least 3 courses
+        // checking if input reaches at least 3 courses before outputing prereqs
         let count = 0;
         Object.values(courseValues).forEach((entry) => (entry !== null) ? count += 1 : null);
         if (count >= 3) {

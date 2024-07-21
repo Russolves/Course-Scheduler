@@ -77,6 +77,7 @@ function Main() {
             setActiveStep((prevActiveStep) => prevActiveStep + 1);
             setSkipped(newSkipped);
             // async call for chosen courses details
+            
         }
     }
     const handleBack = () => {

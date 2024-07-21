@@ -331,7 +331,7 @@ function Main() {
             };
             // if null course_names exist within db make sure suggestion filters them out
             const filtered = courseSuggestions.filter((suggestion) =>
-                suggestion && suggestion.toLowerCase().includes(newInputValue.toLowerCase())
+                suggestion && suggestion.toLowerCase().includes(newInputValue.toLowerCase()) // filter based on user input
             ).slice(0, 15); // limit number of suggestions
             setFilteredSuggestions(filtered);
         } catch (error) {

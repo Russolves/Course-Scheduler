@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Main.css';
+import EnhancedTable from '../components/EnhancedTable';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
@@ -40,6 +41,7 @@ function Main() {
     const [gradOr, setGradOr] = useState(''); // empty string ('grad' for graduate, 'undergraduate' ...)
     const [semester, setSemester] = useState('') // empty string ('spring', 'fall', 'summer'...)
     const [animationClass, setAnimationClass] = useState(['slide-in', 'slide-o', 'slide-back']); // for animating the sliding window between steps
+    const [playAnimation, setPlayAnimation] = useState(false); // only play animation when next button is pressed
     const [stepPressed, setStepPressed] = useState('');
     const [prereqList, setPrereqList] = useState([]); // for prereqs list after backend has been set
     const [refCourse, setRefCourse] = useState({}); // for converting references back to course names ({reference:course_name})
@@ -54,10 +56,12 @@ function Main() {
         return skipped.has(step);
     }
     const handleNext = () => {
+        setPlayAnimation(true);
         setStepPressed('0.35s forwards');
         let count = 0;
         Object.values(courseValues).forEach((entry) => (entry !== null) ? count += 1 : null);
         if (activeStep === 0) {
+            setSlideDirection('slide-left');
             showQuestion();
         };
         if (activeStep === 1 && count < 3) {
@@ -72,11 +76,22 @@ function Main() {
             setActiveStep((prevActiveStep) => prevActiveStep + 1);
             setSkipped(newSkipped);
         }
+        // reset the animation after it has been played
+        setTimeout(() => {
+            setPlayAnimation(false);
+            setSlideDirection(''); // set to empty so that slide-left animation plays
+        }, 350);
     }
     const handleBack = () => {
         setStepPressed('0s forwards');
+        setPlayAnimation(true);
         setSlideDirection('slide-right');
         setActiveStep((prevActiveStep) => prevActiveStep - 1);
+        // reset the animation after it has been played
+        setTimeout(() => {
+            setPlayAnimation(false);
+            setSlideDirection(''); // set to empty so that slide-right animation can be played
+        }, 350);
     };
 
     const handleSkip = () => {
@@ -96,6 +111,10 @@ function Main() {
     };
     const handleReset = () => { // to reset progress of stepper
         setActiveStep(0);
+        setSlideDirection('slide-right');
+        setTimeout(() => {
+            setSlideDirection(''); // set to empty so that slide-right animation can be played
+        }, 350);
     };
     // This section here controls the containers displayed on screen
     const getStepContent = (step) => {
@@ -145,7 +164,7 @@ function Main() {
                         <div>
                             <div className="multi-column-container">
                                 {courseElements.map((element, index) => (
-                                    <div key={index} className="autocomplete-row" style={{ paddingRight:'3rem'}}>
+                                    <div key={index} className="autocomplete-row" style={{ paddingRight: '3rem' }}>
                                         <Autocomplete
                                             disablePortal
                                             id={`course-box-${index}`}
@@ -173,7 +192,7 @@ function Main() {
                                 ))}
                             </div>
                             <div>
-                                <Button style={{ color: 'black' }} color="primary" onClick={addCourse}>Add Course</Button>
+                                <Button style={{ marginBlock: '1.0rem', color: 'black' }} color="primary" onClick={addCourse}>Add Course</Button>
                             </div>
                         </div>
                         <Button style={{ margin: '5px', color: 'white', backgroundColor: 'black' }} variant='contained' onClick={showInput}>Click Me</Button>
@@ -183,16 +202,25 @@ function Main() {
                 return (
                     <div className="step-content">
                         <p className="explanation">Schedule:</p>
-                        <div className="multi-column-container" style={{paddingRight:'10rem'}}>
+                        <div>
+                            <EnhancedTable />
+                        </div>
+                        {/* <div className="multi-column-container" style={{paddingRight:'10rem'}}>
                             {Object.values(prereqList).map((value, index) => (
                                 <p key={index}>{value}</p>
                             ))}
-                        </div>
+                        </div> */}
+                    </div>
+                );
+            case 3:
+                return (
+                    <div className="step-content">
+                        <h2>This program was written by Russell Ho as an open source project</h2>
                     </div>
                 );
             default:
-                console.log("No activeStep container was called");
-                return 'Unknown step';
+                console.log('No activeStep container was called');
+                return "Unknown Step\nSomething went wrong in activeSteps";
         }
     };
     // stepper styles
@@ -215,7 +243,7 @@ function Main() {
         },
         [`&.${stepConnectorClasses.active}`]: {
             [`& .${stepConnectorClasses.line}`]: {
-                animation: `${fillAnimation} ${stepPressed}`,
+                animation: playAnimation ? `${fillAnimation} ${stepPressed}` : `${fillAnimation} 0s forwards`,
             },
         },
         [`&.${stepConnectorClasses.completed}`]: {
@@ -406,7 +434,6 @@ function Main() {
     const bothSnackbarStatus = snackbarStatusGradOr || snackbarStatusSemester;
     // to optimize suggestions and handle snackbar
     const handleInputChange = async (event, newInputValue) => {
-        setStepPressed('0s forwards');
         setShowAlert(false);
         setShowNullAlert(false);
         try {

@@ -68,9 +68,22 @@ const preference_check = async (req, res, course_ref, data) => {
     };
 };
 
+// taking course_ls (names) as input and returning all data known as a ls of ls
+const fetch_data = (req, res, data) => {
+    let response = {message:'API endpoint fetch_data called!', payload: []};
+    const course_ls = req.body.courses;
+    let course_data = [];
+    for (let course of course_ls) {
+        data.forEach((entry) => (course === entry.course_name) ? course_data.push(entry) : null);
+    };
+    response.payload = course_data;
+    res.status(200).json(response);
+};
+
 module.exports = {
     all_courses,
     questionnaire,
     course_selection,
     preference_check,
+    fetch_data
 }

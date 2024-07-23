@@ -1,5 +1,5 @@
 const express = require('express');
-const { all_courses, questionnaire, course_selection, preference_check } = require("../controllers/input.js");
+const { all_courses, questionnaire, course_selection, preference_check, fetch_data } = require("../controllers/input.js");
 const router = express.Router();
 
 // passing arguments (from server.js) into route functions
@@ -15,6 +15,9 @@ module.exports = (client, courses_return, ref_prereq, course_ref, course_prereq,
     });
     router.post('/check', async (req, res) => {
         await preference_check(req, res, course_ref, data);
+    })
+    router.post('/data', async (req, res) => {
+        await fetch_data(req, res, data);
     })
     return router;
 }

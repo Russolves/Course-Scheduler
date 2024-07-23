@@ -10,39 +10,9 @@ import TableRow from '@mui/material/TableRow';
 import TablePagination from '@mui/material/TablePagination';
 import Checkbox from '@mui/material/Checkbox';
 import Row from './Row';
+import PropTypes from 'prop-types';
 
-const columns = [
-  { id: 'name', label: 'Dessert (100g serving)', minWidth: 170 },
-  { id: 'calories', label: 'Calories', minWidth: 100, align: 'right' },
-  { id: 'fat', label: 'Fat (g)', minWidth: 100, align: 'right' },
-  { id: 'carbs', label: 'Carbs (g)', minWidth: 100, align: 'right' },
-  { id: 'protein', label: 'Protein (g)', minWidth: 100, align: 'right' },
-];
-
-function createData(name, calories, fat, carbs, protein, price) {
-  return {
-    name,
-    calories,
-    fat,
-    carbs,
-    protein,
-    price,
-    history: [
-      { date: '2020-01-05', customerId: '11091700', amount: 3 },
-      { date: '2020-01-02', customerId: 'Anonymous', amount: 1 },
-    ],
-  };
-}
-
-const rows = [
-  createData('Frozen yoghurt', 159, 6.0, 24, 4.0, 3.99),
-  createData('Ice cream sandwich', 237, 9.0, 37, 4.3, 4.99),
-  createData('Eclair', 262, 16.0, 24, 6.0, 3.79),
-  createData('Cupcake', 305, 3.7, 67, 4.3, 2.5),
-  createData('Gingerbread', 356, 16.0, 49, 3.9, 1.5),
-];
-
-export default function EnhancedTable() {
+export default function EnhancedTable({ rows, columns }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [selected, setSelected] = useState([]);
@@ -104,7 +74,7 @@ export default function EnhancedTable() {
                   }}
                 />
               </TableCell>
-              <TableCell /> {/* For expand/collapse */}
+              <TableCell />
               {columns.map((column) => (
                 <TableCell
                   key={column.id}
@@ -140,3 +110,15 @@ export default function EnhancedTable() {
     </Paper>
   );
 }
+
+EnhancedTable.propTypes = {
+  rows: PropTypes.arrayOf(PropTypes.object).isRequired,
+  columns: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      minWidth: PropTypes.number,
+      align: PropTypes.oneOf(['right', 'left', 'center']),
+    })
+  ).isRequired,
+};

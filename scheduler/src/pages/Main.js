@@ -47,6 +47,11 @@ function Main() {
     const [refCourse, setRefCourse] = useState({}); // for converting references back to course names ({reference:course_name})
     const [snackbarStatusGradOr, setSnackbarStatusGradOr] = useState(false); // used for answering whether use input in questionnaire aligns with courses chosen
     const [snackbarStatusSemester, setSnackbarStatusSemester] = useState(false);
+    const [tableRows, setTableRows] = useState([]); // ls of objects for table rows
+    const [tableColumns, setTableColumns] = useState([
+        { id: 'code', label: 'Course code', minWidth: 80 },
+        { id: 'name', label: 'Course name', minWidth: 170 }
+    ]); // ls of objects for table columns
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -75,6 +80,10 @@ function Main() {
             setSlideDirection('slide-left');
             setActiveStep((prevActiveStep) => prevActiveStep + 1);
             setSkipped(newSkipped);
+            // make async call to backend for fetching all necessary data
+            if (activeStep === 1) {
+                fetch_data(prereqList); // prereqList is name of courses to be taken in order
+            };
         }
         // reset the animation after it has been played
         setTimeout(() => {
@@ -82,6 +91,52 @@ function Main() {
             setSlideDirection(''); // set to empty so that slide-left animation plays
         }, 350);
     }
+    // place this async function in try catch
+    const fetch_request = async (course_ls) => {
+        const payload = {courses:course_ls};
+        const response = await fetch(`${backend_uri}/data`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        return data;
+    };
+    // async function call to backend to retrieve course data
+    const fetch_data = async (prereq_ls) => {
+        const chosen_courses = Object.values(courseValues).map((entry, index) => entry);
+        const prereqs = prereq_ls.filter((entry) => (!chosen_courses.includes(entry))); // prereqs contains a ls of course names to be taken in order (without chosen_courses)
+        // call to backend for chosen_courses data
+        let chosen_data = [];
+        try {
+            chosen_data = await fetch_request(chosen_courses);
+        } catch (error) {
+            console.log('Error occurred during fetch_data function for retrieving data for user chosen_courses:', error);
+        } finally {
+            // construct table
+            let rows = []; // initialize rows object
+            for (let i = 0; i < chosen_courses.length; i++) {
+                const course_code = chosen_courses[i].slice(0, chosen_courses[i].indexOf('-'));
+                const course_name = chosen_courses[i].slice(chosen_courses[i].indexOf(' - ') + ' - '.length);
+                const course_link = chosen_data.payload[i].course_link;
+                rows.push(createData(course_code, course_name));
+            };
+
+            setTableRows(rows);
+        };
+    };
+    // creating rows data
+    function createData(code, name) {
+        return {
+            code,
+            name,
+            history: [
+                { date: '2020-01-05', customerId: '11091700', amount: 3 },
+                { date: '2020-01-02', customerId: 'Anonymous', amount: 1 },
+            ],
+        };
+    };
+    // The back button
     const handleBack = () => {
         setStepPressed('0s forwards');
         setPlayAnimation(true);
@@ -203,7 +258,7 @@ function Main() {
                     <div className="step-content">
                         <p className="explanation">Schedule:</p>
                         <div>
-                            <EnhancedTable />
+                            <EnhancedTable rows={tableRows} columns={tableColumns} />
                         </div>
                         {/* <div className="multi-column-container" style={{paddingRight:'10rem'}}>
                             {Object.values(prereqList).map((value, index) => (

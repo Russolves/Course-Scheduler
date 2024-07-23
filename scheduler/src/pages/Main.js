@@ -121,7 +121,6 @@ function Main() {
                 const course_link = chosen_data.payload[i].course_link;
                 rows.push(createData(course_code, course_name));
             };
-
             setTableRows(rows);
         };
     };

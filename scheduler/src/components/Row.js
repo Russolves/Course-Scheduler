@@ -41,7 +41,7 @@ const Row = (props) => {
                     const value = row[column.id];
                     return (
                         <TableCell key={column.id} align={column.align}>
-                            {column.format && typeof value === 'number' ? column.format(value) : (value !== null && value !== undefined ? value: '')}
+                            {column.format && typeof value === 'number' ? column.format(value) : (value !== null && value !== undefined ? value : '')}
                         </TableCell>
                     );
                 })}
@@ -50,31 +50,35 @@ const Row = (props) => {
                 <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
                     <Collapse in={open} timeout="auto" unmountOnExit>
                         <Box sx={{ margin: 1 }}>
-                            <Typography variant="h6" gutterBottom component="div">
-                                History
+                            <Typography variant="h8" gutterBottom component="div">
+                                {row.description}
                             </Typography>
+                            <Typography variant="h8" gutterBottom component="div">{(row.grad !== undefined) ? ((row.grad === true) ? 'Graduate Level Course': 'Not a graduate level course'): ''}</Typography>
+                            <Typography variant="h8" gutterBottom component="div">{(row.levels.length > 0) ? `Course levels being offered: ${row.levels}`:''}</Typography>
+                            <Typography variant="h6" gutterBottom component="div">Prerequisite Course Combinations</Typography>
                             <Table size="small" aria-label="purchases">
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell>Date</TableCell>
-                                        <TableCell>Customer</TableCell>
-                                        <TableCell align="right">Amount</TableCell>
-                                        <TableCell align="right">Total price ($)</TableCell>
+                                        <TableCell>Combination</TableCell>
+                                        <TableCell>Prerequisite Courses</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {row.history.map((historyRow) => (
-                                        <TableRow key={historyRow.date}>
-                                            <TableCell component="th" scope="row">
-                                                {historyRow.date}
-                                            </TableCell>
-                                            <TableCell>{historyRow.customerId}</TableCell>
-                                            <TableCell align="right">{historyRow.amount}</TableCell>
-                                            <TableCell align="right">
-                                                {historyRow.amount}
-                                            </TableCell>
+                                    {row.prereq.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell component="th" scope="row"></TableCell>
+                                            <TableCell>This course does not require any prerequisites!</TableCell>
                                         </TableRow>
-                                    ))}
+                                    ) : (
+                                        row.prereq.map((combination, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell component="th" scope="row">
+                                                    {index + 1}
+                                                </TableCell>
+                                                <TableCell>{combination.join(', ')}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </Box>
@@ -89,13 +93,14 @@ Row.propTypes = {
     row: PropTypes.shape({
         code: PropTypes.string.isRequired,
         name: PropTypes.string.isRequired,
-        history: PropTypes.arrayOf(
-            PropTypes.shape({
-                date: PropTypes.string.isRequired,
-                customerId: PropTypes.string.isRequired,
-                amount: PropTypes.number.isRequired,
-            })
-        ).isRequired,
+        credits: PropTypes.string.isRequired,
+        time: PropTypes.string.isRequired,
+        campus: PropTypes.string.isRequired,
+        types: PropTypes.string.isRequired,
+        description: PropTypes.string.isRequired,
+        grad: PropTypes.bool.isRequired,
+        levels: PropTypes.string.isRequired,
+        prereq: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)).isRequired // ls within ls
     }).isRequired,
     isItemSelected: PropTypes.bool.isRequired,
     handleClick: PropTypes.func.isRequired,

@@ -50,9 +50,12 @@ function Main() {
     const [tableRows, setTableRows] = useState([]); // ls of objects for table rows
     const [tableColumns, setTableColumns] = useState([
         { id: 'code', label: 'Course code', minWidth: 80 },
-        { id: 'name', label: 'Course name', minWidth: 170 }
-    ]); // ls of objects for table columns
-
+        { id: 'name', label: 'Course name', minWidth: 170 },
+        { id: 'credits', label: 'Credits', minWidth: 20 },
+        { id: 'time', label: 'Time offered', minWidth: 100 },
+        { id: 'campus', label: 'Campus offered at', minWidth: 80 },
+        { id: 'types', label: 'Schedule types', minWidth: 120 }]); // ls of objects for table columns
+    const [chosenLength, setChosenLength] = useState(0); // chosen number of courses
     // define steps that can be skipped
     const isStepOptional = (step) => {
         return step === 0;
@@ -93,7 +96,7 @@ function Main() {
     }
     // place this async function in try catch
     const fetch_request = async (course_ls) => {
-        const payload = {courses:course_ls};
+        const payload = { courses: course_ls };
         const response = await fetch(`${backend_uri}/data`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -105,6 +108,7 @@ function Main() {
     // async function call to backend to retrieve course data
     const fetch_data = async (prereq_ls) => {
         const chosen_courses = Object.values(courseValues).map((entry, index) => entry);
+        setChosenLength(chosen_courses.length);
         const prereqs = prereq_ls.filter((entry) => (!chosen_courses.includes(entry))); // prereqs contains a ls of course names to be taken in order (without chosen_courses)
         // call to backend for chosen_courses data
         let chosen_data = [];
@@ -118,21 +122,36 @@ function Main() {
             for (let i = 0; i < chosen_courses.length; i++) {
                 const course_code = chosen_courses[i].slice(0, chosen_courses[i].indexOf('-'));
                 const course_name = chosen_courses[i].slice(chosen_courses[i].indexOf(' - ') + ' - '.length);
-                const course_link = chosen_data.payload[i].course_link;
-                rows.push(createData(course_code, course_name));
+                const course_data = chosen_data.payload[i];
+                let course_credits = course_data.credit_hours || [];
+                let course_link = course_data.course_link || '';
+                let course_time = course_data.time_offered || [];
+                let course_additional = course_data.additional || '';
+                let course_campus = course_data.campus || [];
+                let course_description = course_data.course_description || '';
+                let course_grad = (course_data.grad === undefined) ? undefined : (course_data.grad) ? true : false; // grad boolean value or undefined
+                let course_levels = course_data.levels || [];
+                let course_refprereq = course_data.prereq_reference || []; // prereqs reference
+                let course_prereq = course_data.prereq_courses || []; // prereqs code/name
+                let course_types = course_data.schedule_types || [];
+                rows.push(createData(course_code, course_name, course_credits.join(', '), course_time.join(', '), course_campus.join(', '), course_types.join(', '), course_description, course_grad, course_levels.join(', '), course_prereq));
             };
             setTableRows(rows);
         };
     };
     // creating rows data
-    function createData(code, name) {
+    function createData(code, name, credits, time, campus, types, description, grad, levels, prereq) {
         return {
             code,
             name,
-            history: [
-                { date: '2020-01-05', customerId: '11091700', amount: 3 },
-                { date: '2020-01-02', customerId: 'Anonymous', amount: 1 },
-            ],
+            credits,
+            time,
+            campus,
+            types,
+            description,
+            grad,
+            levels,
+            prereq
         };
     };
     // The back button
@@ -257,7 +276,7 @@ function Main() {
                     <div className="step-content">
                         <p className="explanation">Schedule:</p>
                         <div>
-                            <EnhancedTable rows={tableRows} columns={tableColumns} />
+                            <EnhancedTable rows={tableRows} columns={tableColumns} chosen_length={chosenLength}/>
                         </div>
                         {/* <div className="multi-column-container" style={{paddingRight:'10rem'}}>
                             {Object.values(prereqList).map((value, index) => (

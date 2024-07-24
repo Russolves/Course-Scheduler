@@ -11,13 +11,18 @@ import TablePagination from '@mui/material/TablePagination';
 import Checkbox from '@mui/material/Checkbox';
 import Row from './Row';
 import PropTypes from 'prop-types';
+import Box from '@mui/material/Box';
 
-export default function EnhancedTable({ rows, columns }) {
+export default function EnhancedTable({ rows, columns, chosen_length }) {
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(chosen_length);
   const [selected, setSelected] = useState([]);
 
   const handleChangePage = (event, newPage) => {
+    // arriving at first page changes page length to number of user chosen courses
+    if (newPage === 0) {
+      setRowsPerPage(chosen_length);
+    };
     setPage(newPage);
   };
 
@@ -56,7 +61,12 @@ export default function EnhancedTable({ rows, columns }) {
   };
 
   const isSelected = (name) => selected.indexOf(name) !== -1;
-
+  const displayPage = () => {
+    if (page === 0 && rowsPerPage === chosen_length) {
+      return 'Showing results for selected year'
+    }
+    return '';
+  };
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden' }}>
       <TableContainer sx={{ maxHeight: 440 }}>
@@ -98,15 +108,18 @@ export default function EnhancedTable({ rows, columns }) {
           </TableBody>
         </Table>
       </TableContainer>
-      <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
-        component="div"
-        count={rows.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
+      <Box display="flex" justifyContent="flex-end" alignItems="center" padding={1}>
+        <Box mr={2} style={{marginBottom:'0.3rem'}}><strong>{displayPage()}</strong></Box>
+        <TablePagination
+          rowsPerPageOptions={[5]}
+          component="div"
+          count={rows.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </Box>
     </Paper>
   );
 }
@@ -119,6 +132,7 @@ EnhancedTable.propTypes = {
       label: PropTypes.string.isRequired,
       minWidth: PropTypes.number,
       align: PropTypes.oneOf(['right', 'left', 'center']),
-    })
+    }),
   ).isRequired,
+  chosen_length: PropTypes.number.isRequired
 };

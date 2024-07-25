@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Main.css';
 import EnhancedTable from '../components/EnhancedTable';
+import BackdropEdit from '../components/BackdropEdit';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
@@ -20,6 +21,7 @@ import IconButton from '@mui/material/IconButton';
 import Radio from '@mui/material/Radio';
 import { keyframes } from '@mui/system';
 import Snackbar from '@mui/material/Snackbar';
+import Backdrop from '@mui/material/Backdrop';
 
 // backend uri
 const backend_uri = 'http://localhost:2000'
@@ -56,6 +58,9 @@ function Main() {
         { id: 'campus', label: 'Campus offered at', minWidth: 80 },
         { id: 'types', label: 'Schedule types', minWidth: 120 }]); // ls of objects for table columns
     const [chosenLength, setChosenLength] = useState(0); // chosen number of courses
+    const [selectedRows, setSelectedRows] = useState([]); // selected rows (passed into Enhanced Table component)
+    const [openBackdrop, setOpenBackdrop] = useState(false);
+
     // define steps that can be skipped
     const isStepOptional = (step) => {
         return step === 0;
@@ -110,38 +115,51 @@ function Main() {
         const chosen_courses = Object.values(courseValues).map((entry, index) => entry);
         setChosenLength(chosen_courses.length);
         const prereqs = prereq_ls.filter((entry) => (!chosen_courses.includes(entry))); // prereqs contains a ls of course names to be taken in order (without chosen_courses)
-        // call to backend for chosen_courses data
+        // call to backend for courses data
         let chosen_data = [];
+        let prereq_data = [];
         try {
             chosen_data = await fetch_request(chosen_courses);
+            prereqs.reverse(); // reverse prereq list (to display courses in the right order)
+            prereq_data = await fetch_request(prereqs);
         } catch (error) {
-            console.log('Error occurred during fetch_data function for retrieving data for user chosen_courses:', error);
+            console.log('Error occurred during fetch_data function for retrieving data for courses:', error);
         } finally {
             // construct table
-            let rows = []; // initialize rows object
-            for (let i = 0; i < chosen_courses.length; i++) {
-                const course_code = chosen_courses[i].slice(0, chosen_courses[i].indexOf('-'));
-                const course_name = chosen_courses[i].slice(chosen_courses[i].indexOf(' - ') + ' - '.length);
-                const course_data = chosen_data.payload[i];
-                let course_credits = course_data.credit_hours || [];
-                let course_link = course_data.course_link || '';
-                let course_time = course_data.time_offered || [];
-                let course_additional = course_data.additional || '';
-                let course_campus = course_data.campus || [];
-                let course_description = course_data.course_description || '';
-                let course_grad = (course_data.grad === undefined) ? undefined : (course_data.grad) ? true : false; // grad boolean value or undefined
-                let course_levels = course_data.levels || [];
-                let course_refprereq = course_data.prereq_reference || []; // prereqs reference
-                let course_prereq = course_data.prereq_courses || []; // prereqs code/name
-                let course_types = course_data.schedule_types || [];
-                rows.push(createData(course_code, course_name, course_credits.join(', '), course_time.join(', '), course_campus.join(', '), course_types.join(', '), course_description, course_grad, course_levels.join(', '), course_prereq));
-            };
-            setTableRows(rows);
+            const chosen_rows = courseLoop(chosen_courses, chosen_data); // for user chosen courses
+            const prereq_rows = courseLoop(prereqs, prereq_data);
+            setTableRows([...chosen_rows, ...prereq_rows]);
         };
     };
+    // for loop function to return createData list
+    function courseLoop(courses, data) {
+        let rows = []; // initialize rows object
+        for (let i = 0; i < courses.length; i++) {
+            const course_code = courses[i].slice(0, courses[i].indexOf('-'));
+            const course_name = courses[i].slice(courses[i].indexOf(' - ') + ' - '.length);
+            const course_data = data.payload[i];
+            const course_ref = course_data.reference; // this is required
+            let course_credits = course_data.credit_hours || [];
+            let course_link = course_data.course_link || '';
+            let course_time = course_data.time_offered || [];
+            let course_additional = course_data.additional || '';
+            let course_campus = course_data.campus || [];
+            let course_description = course_data.course_description || '';
+            let course_grad = (course_data.grad === undefined) ? undefined : (course_data.grad) ? true : false; // grad boolean value or undefined
+            let course_levels = course_data.levels || [];
+            let course_refprereq = course_data.prereq_reference || []; // prereqs reference
+            let course_prereq = course_data.prereq_courses || []; // prereqs code/name
+            let course_types = course_data.schedule_types || [];
+            // cleaning course types ls data up
+            course_types = course_types.map((entry, index) => entry.replace(/<[^>]*>/g, ''));
+            rows.push(createData(course_ref, course_code, course_name, course_credits.join(', '), course_time.join(', '), course_campus.join(', '), course_types.join(', '), course_description, course_grad, course_levels.join(', '), course_prereq));
+        };
+        return rows;
+    };
     // creating rows data
-    function createData(code, name, credits, time, campus, types, description, grad, levels, prereq) {
+    function createData(reference, code, name, credits, time, campus, types, description, grad, levels, prereq) {
         return {
+            reference,
             code,
             name,
             credits,
@@ -154,6 +172,19 @@ function Main() {
             prereq
         };
     };
+    // for backdrop button
+    const handleBackdropClose = () => {
+        setOpenBackdrop(false);
+    };
+    // function to handle selected rows change from child component (enhancedtable.js)
+    const handleSelectedRowsChange = (newSelectedRows) => {
+        setSelectedRows(newSelectedRows);
+    };
+    // The edit button for courses (to swap or to delete)
+    const handleEdit = () => {
+        console.log("Selected rows:", selectedRows);
+        setOpenBackdrop(true);
+    }
     // The back button
     const handleBack = () => {
         setStepPressed('0s forwards');
@@ -276,7 +307,16 @@ function Main() {
                     <div className="step-content">
                         <p className="explanation">Schedule:</p>
                         <div>
-                            <EnhancedTable rows={tableRows} columns={tableColumns} chosen_length={chosenLength}/>
+                            <EnhancedTable rows={tableRows} columns={tableColumns} chosen_length={chosenLength} onSelectedRowsChange={handleSelectedRowsChange} />
+                        </div>
+                        <div>
+                            <Backdrop
+                                sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                                open={openBackdrop}
+                                onClick={handleBackdropClose}
+                            >
+                                <BackdropEdit rows={tableRows} selected={selectedRows} />
+                            </Backdrop>
                         </div>
                         {/* <div className="multi-column-container" style={{paddingRight:'10rem'}}>
                             {Object.values(prereqList).map((value, index) => (
@@ -560,8 +600,6 @@ function Main() {
         if (count < 3) {
             setShowNullAlert(true);
         } else {
-            console.log('Print:', courseValues);
-            console.log('Course elements:', courseElements);
             try {
                 const response = await fetch(`${backend_uri}/selection`, {
                     method: "POST",
@@ -626,6 +664,11 @@ function Main() {
                         {isStepOptional(activeStep) && (
                             <Button style={{ color: "black", borderColor: "black" }} variant="outlined" onClick={handleSkip} sx={{ mr: 1 }}>
                                 Skip
+                            </Button>
+                        )}
+                        {activeStep === 2 && (
+                            <Button style={{ color: "black", borderColor: "black" }} variant="outlined" onClick={handleEdit} sx={{ mr: 1 }}>
+                                Edit
                             </Button>
                         )}
                         <Button style={{ color: "white", backgroundColor: "rgb(190, 153, 50)" }} onClick={handleNext} variant="contained">

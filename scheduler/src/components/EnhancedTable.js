@@ -1,5 +1,5 @@
 // EnhancedTable.js
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -13,10 +13,15 @@ import Row from './Row';
 import PropTypes from 'prop-types';
 import Box from '@mui/material/Box';
 
-export default function EnhancedTable({ rows, columns, chosen_length }) {
+export default function EnhancedTable({ rows, columns, chosen_length, onSelectedRowsChange }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(chosen_length);
   const [selected, setSelected] = useState([]);
+
+  // for detecting should selected rows change
+  useEffect(() => {
+    onSelectedRowsChange(selected);
+  }, [selected, onSelectedRowsChange]);
 
   const handleChangePage = (event, newPage) => {
     // arriving at first page changes page length to number of user chosen courses
@@ -33,19 +38,19 @@ export default function EnhancedTable({ rows, columns, chosen_length }) {
 
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
-      const newSelected = rows.map((n) => n.name);
+      const newSelected = rows.map((n) => n.reference);
       setSelected(newSelected);
       return;
     }
     setSelected([]);
   };
 
-  const handleClick = (event, name) => {
-    const selectedIndex = selected.indexOf(name);
+  const handleClick = (event, reference) => {
+    const selectedIndex = selected.indexOf(reference);
     let newSelected = [];
 
     if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, name);
+      newSelected = newSelected.concat(selected, reference);
     } else if (selectedIndex === 0) {
       newSelected = newSelected.concat(selected.slice(1));
     } else if (selectedIndex === selected.length - 1) {
@@ -60,7 +65,7 @@ export default function EnhancedTable({ rows, columns, chosen_length }) {
     setSelected(newSelected);
   };
 
-  const isSelected = (name) => selected.indexOf(name) !== -1;
+  const isSelected = (reference) => selected.indexOf(reference) !== -1;
   const displayPage = () => {
     if (page === 0 && rowsPerPage === chosen_length) {
       return 'Showing results for selected year'
@@ -100,9 +105,9 @@ export default function EnhancedTable({ rows, columns, chosen_length }) {
             {rows
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map((row) => {
-                const isItemSelected = isSelected(row.name);
+                const isItemSelected = isSelected(row.reference);
                 return (
-                  <Row key={row.name} row={row} isItemSelected={isItemSelected} handleClick={handleClick} columns={columns} />
+                  <Row key={row.reference} row={row} isItemSelected={isItemSelected} handleClick={handleClick} columns={columns} />
                 );
               })}
           </TableBody>
@@ -134,5 +139,6 @@ EnhancedTable.propTypes = {
       align: PropTypes.oneOf(['right', 'left', 'center']),
     }),
   ).isRequired,
-  chosen_length: PropTypes.number.isRequired
+  chosen_length: PropTypes.number.isRequired,
+  onSelectedRowsChange: PropTypes.func.isRequired,
 };

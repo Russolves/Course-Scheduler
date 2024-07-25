@@ -17,10 +17,14 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 const Row = (props) => {
     const { row, isItemSelected, handleClick, columns } = props;
     const [open, setOpen] = useState(false);
-
+    const handleExpand = (event) => {
+        // Prevent the row's onClick event from triggering
+        event.stopPropagation();
+        setOpen(!open);
+    };
     return (
         <React.Fragment>
-            <TableRow hover onClick={(event) => handleClick(event, row.name)} role="checkbox" tabIndex={-1} key={row.name} selected={isItemSelected}>
+            <TableRow hover onClick={(event) => handleClick(event, row.reference)} role="checkbox" tabIndex={-1} key={row.reference} selected={isItemSelected}>
                 <TableCell padding="checkbox">
                     <Checkbox
                         color="primary"
@@ -32,7 +36,7 @@ const Row = (props) => {
                     <IconButton
                         aria-label="expand row"
                         size="small"
-                        onClick={() => setOpen(!open)}
+                        onClick={handleExpand}
                     >
                         {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                     </IconButton>
@@ -53,8 +57,8 @@ const Row = (props) => {
                             <Typography variant="h8" gutterBottom component="div">
                                 {row.description}
                             </Typography>
-                            <Typography variant="h8" gutterBottom component="div">{(row.grad !== undefined) ? ((row.grad === true) ? 'Graduate Level Course': 'Not a graduate level course'): ''}</Typography>
-                            <Typography variant="h8" gutterBottom component="div">{(row.levels.length > 0) ? `Course levels being offered: ${row.levels}`:''}</Typography>
+                            <Typography variant="h8" gutterBottom component="div">{(row.grad !== undefined) ? ((row.grad === true) ? 'Graduate Level Course' : 'Not a graduate level course') : ''}</Typography>
+                            <Typography variant="h8" gutterBottom component="div">{(row.levels.length > 0) ? `Course levels being offered: ${row.levels}` : ''}</Typography>
                             <Typography variant="h6" gutterBottom component="div">Prerequisite Course Combinations</Typography>
                             <Table size="small" aria-label="purchases">
                                 <TableHead>
@@ -91,6 +95,7 @@ const Row = (props) => {
 // arguments for Row
 Row.propTypes = {
     row: PropTypes.shape({
+        reference: PropTypes.number.isRequired,
         code: PropTypes.string.isRequired,
         name: PropTypes.string.isRequired,
         credits: PropTypes.string.isRequired,
@@ -98,7 +103,7 @@ Row.propTypes = {
         campus: PropTypes.string.isRequired,
         types: PropTypes.string.isRequired,
         description: PropTypes.string.isRequired,
-        grad: PropTypes.bool.isRequired,
+        grad: PropTypes.bool,
         levels: PropTypes.string.isRequired,
         prereq: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)).isRequired // ls within ls
     }).isRequired,

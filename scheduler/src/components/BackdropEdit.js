@@ -14,8 +14,10 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 
 export default function BackdropEdit({ rows, selected }) {
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [courseData, setCourseData] = useState({});
+    const [courseName, setCourseName] = useState('');
 
-    // function to find course data within object
+    // function to find course data within rows ls of objects
     function findCourse(index) {
         let course_interest = {};
         for (let course of rows) {
@@ -33,9 +35,6 @@ export default function BackdropEdit({ rows, selected }) {
         setCourseData(initialCourse);
         setCourseName(`${initialCourse.code} - ${initialCourse.name}`);
     }, [rows, selected]);
-
-    const [courseData, setCourseData] = useState({});
-    const [courseName, setCourseName] = useState('');
 
     const previousCourse = () => {
         setSelectedIndex((prevIndex) => {

@@ -172,6 +172,12 @@ function Main() {
             prereq
         };
     };
+    // for closing backdrop through finish button in child component
+    const handleFinishBackdropClose = (close) => {
+        if (close) {
+            setOpenBackdrop(false);
+        };
+    };
     // for backdrop button
     const handleBackdropClose = () => {
         setOpenBackdrop(false);
@@ -315,7 +321,7 @@ function Main() {
                                 open={openBackdrop}
                                 onClick={handleBackdropClose}
                             >
-                                <BackdropEdit rows={tableRows} selected={selectedRows} />
+                                <BackdropEdit rows={tableRows} selected={selectedRows} onFinishBackdropClose={handleFinishBackdropClose} />
                             </Backdrop>
                         </div>
                         {/* <div className="multi-column-container" style={{paddingRight:'10rem'}}>

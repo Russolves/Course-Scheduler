@@ -13,7 +13,7 @@ import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import CheckIcon from '@mui/icons-material/Check';
 
-export default function BackdropEdit({ rows, selected, onFinishBackdropClose }) {
+export default function BackdropEdit({ rows, selected, onFinishBackdropClose, onCourseEdit, editedCourseList }) {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [courseData, setCourseData] = useState({});
     const [courseName, setCourseName] = useState('');
@@ -25,22 +25,40 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose }) 
     const [courseGrad, setCourseGrad] = useState('');
     const [coursePrereqs, setCoursePrereqs] = useState([]); // course prerequisites in code/name
     const [selectedDone, setSelectedDone] = useState(false); // to see if selected edit has reached last element
-    const [editedList, setEditedList] = useState([]); // ls of {} for each selected course
+    // {} for each selected course with reference as key and ls as value: [selectedIndex, {taken: true/false}]
     const [takenCourse, setTakenCourse] = useState(false); // for showing checkmark for taken this course
 
     // initialize first course on selected list
     useEffect(() => {
+        (selected.length === 1) ? setSelectedDone(true) : setSelectedDone(false);
         const initialCourse = findCourse(0);
         setCourseData(initialCourse);
         setCourseName(`${initialCourse.code} - ${initialCourse.name}`);
-        if (selected.length === 1) setSelectedDone(true);
-        selected.forEach((course) => editedList.push({taken: false})); // upon initialization push number of {} equal to number of selected courses into edited
     }, [rows, selected]);
     // for reading in edited data
     useEffect(() => {
-        const current_edit = editedList[selectedIndex];
-        setTakenCourse(current_edit.taken);
+        for (let ref in editedCourseList) {
+            if (editedCourseList[ref][0] === selectedIndex) {
+                setTakenCourse(editedCourseList[ref][1].taken);
+                break
+            }
+        };
+        if (selectedIndex === selected.length - 1) {
+            setSelectedDone(true);
+        } else {
+            setSelectedDone(false);
+        };
     }, [selectedIndex]);
+    
+    useEffect(() => {
+        // setting read data from editedCourseList
+        for (let ref in editedCourseList) {
+            if (editedCourseList[ref][0] === selectedIndex) {
+                setTakenCourse(editedCourseList[ref][1].taken);
+                break
+            }
+        };
+    }, [editedCourseList])
     // function to find course data within rows ls of objects
     function findCourse(index) {
         let course_interest = {};
@@ -89,17 +107,22 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose }) 
         });
     };
     const checkTaken = () => {
-        if (editedList[selectedIndex].taken === false) {
-            editedList[selectedIndex].taken = true;
-            setTakenCourse(true); // set checkmark
-        } else {
-            editedList[selectedIndex].taken = false; // change course taken status to false if checked before
-            setTakenCourse(false);
-        };
+        const newEditedList = { ...editedCourseList };
+        for (let ref in newEditedList) {
+            if (newEditedList[ref][0] === selectedIndex) {
+                newEditedList[ref][1].taken = !newEditedList[ref][1].taken;
+                setTakenCourse(newEditedList[ref][1].taken);
+                break;
+            }
+        }
+        onCourseEdit(newEditedList);
     };
+    // pressing the finish editing button
     const completeEdit = () => {
         onFinishBackdropClose(true);
-        console.log('Completed edit ls:', editedList);
+        // for detecting and returning changes in edited list to parent component Main.js
+        onCourseEdit(editedCourseList);
+        setSelectedIndex(0);
     };
     return (
         <Box
@@ -284,5 +307,8 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose }) 
 BackdropEdit.propTypes = {
     rows: PropTypes.arrayOf(PropTypes.object).isRequired,
     selected: PropTypes.arrayOf(PropTypes.number).isRequired,
-    onFinishBackdropClose: PropTypes.func.isRequired
+    onFinishBackdropClose: PropTypes.func.isRequired,
+    onCourseEdit: PropTypes.func.isRequired,
+    editedCourseList: PropTypes.object.isRequired,
+    backDrop: PropTypes.bool.isRequired,
 };

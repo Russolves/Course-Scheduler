@@ -13,10 +13,10 @@ import Row from './Row';
 import PropTypes from 'prop-types';
 import Box from '@mui/material/Box';
 
-export default function EnhancedTable({ rows, columns, chosen_length, onSelectedRowsChange }) {
+export default function EnhancedTable({ rows, columns, chosen_length, onSelectedRowsChange, courseSelected }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(chosen_length);
-  const [selected, setSelected] = useState([]);
+  const [selected, setSelected] = useState(courseSelected);
 
   // for detecting should selected rows change
   useEffect(() => {
@@ -141,4 +141,5 @@ EnhancedTable.propTypes = {
   ).isRequired,
   chosen_length: PropTypes.number.isRequired,
   onSelectedRowsChange: PropTypes.func.isRequired,
+  courseSelected: PropTypes.arrayOf(PropTypes.number).isRequired,
 };

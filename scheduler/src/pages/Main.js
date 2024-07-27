@@ -60,6 +60,7 @@ function Main() {
     const [chosenLength, setChosenLength] = useState(0); // chosen number of courses
     const [selectedRows, setSelectedRows] = useState([]); // selected rows (passed into Enhanced Table component)
     const [openBackdrop, setOpenBackdrop] = useState(false);
+    const [editedList, setEditedList] = useState({}); // pass into child component BackdropEdit.js (also set to this variable when returned)
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -178,6 +179,10 @@ function Main() {
             setOpenBackdrop(false);
         };
     };
+    // for removing the courses that were marked 'taken' in edit mode
+    const courseTaken = (newEdited) => {
+        setEditedList(newEdited);
+    };
     // for backdrop button
     const handleBackdropClose = () => {
         setOpenBackdrop(false);
@@ -188,7 +193,6 @@ function Main() {
     };
     // The edit button for courses (to swap or to delete)
     const handleEdit = () => {
-        console.log("Selected rows:", selectedRows);
         setOpenBackdrop(true);
     }
     // The back button
@@ -313,7 +317,7 @@ function Main() {
                     <div className="step-content">
                         <p className="explanation">Schedule:</p>
                         <div>
-                            <EnhancedTable rows={tableRows} columns={tableColumns} chosen_length={chosenLength} onSelectedRowsChange={handleSelectedRowsChange} />
+                            <EnhancedTable rows={tableRows} columns={tableColumns} chosen_length={chosenLength} onSelectedRowsChange={handleSelectedRowsChange} courseSelected={selectedRows} />
                         </div>
                         <div>
                             <Backdrop
@@ -321,7 +325,7 @@ function Main() {
                                 open={openBackdrop}
                                 onClick={handleBackdropClose}
                             >
-                                <BackdropEdit rows={tableRows} selected={selectedRows} onFinishBackdropClose={handleFinishBackdropClose} />
+                                <BackdropEdit rows={tableRows} selected={selectedRows} onFinishBackdropClose={handleFinishBackdropClose} onCourseEdit={courseTaken} editedCourseList={editedList} />
                             </Backdrop>
                         </div>
                         {/* <div className="multi-column-container" style={{paddingRight:'10rem'}}>
@@ -471,8 +475,26 @@ function Main() {
         Object.values(courseValues).forEach((entry) => (entry !== null) ? count += 1 : null);
         if (count >= 3) {
             initial_prereq(); // call async function only when count >= 3
+            setSelectedRows([]); // clear selected rows if courses have changed
         };
     }, [JSON.stringify(courseValues)])
+    // everytime selected value changes
+    useEffect(() => {
+        // upon initialization use selected course ref as key and make selectedIndex first entry on ls for value
+        for (let key in editedList) {
+            if (!selectedRows.includes(key)) {
+                delete editedList[key];
+            }
+        };
+        let initial_index = 0;
+        for (let ref of selectedRows) {
+            if (!Object.keys(editedList).includes(ref)) {
+                editedList[ref] = [-1, { taken: false }];
+            };
+            editedList[ref][0] = initial_index;
+            initial_index += 1;
+        };
+    }, [selectedRows]);
     // selected values
     const handlegradChange = (event) => {
         setGradOr(event.target.value); // empty string

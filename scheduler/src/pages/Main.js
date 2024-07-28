@@ -22,6 +22,7 @@ import Radio from '@mui/material/Radio';
 import { keyframes } from '@mui/system';
 import Snackbar from '@mui/material/Snackbar';
 import Backdrop from '@mui/material/Backdrop';
+import { useSearchParams } from 'react-router-dom';
 
 // backend uri
 const backend_uri = 'http://localhost:2000'
@@ -29,6 +30,7 @@ const backend_uri = 'http://localhost:2000'
 const steps = ['Questionnaire', 'Select Courses', 'Scheduler Builder'];
 
 function Main() {
+    const [searchParams, setSearchParams] = useSearchParams();
     // define state variables
     const [slideDirection, setSlideDirection] = useState('');
     const [courseElements, setCourseElements] = useState([0, 1, 2]); // initialize with 3 options
@@ -61,6 +63,8 @@ function Main() {
     const [selectedRows, setSelectedRows] = useState([]); // selected rows (passed into Enhanced Table component)
     const [openBackdrop, setOpenBackdrop] = useState(false);
     const [editedList, setEditedList] = useState({}); // pass into child component BackdropEdit.js (also set to this variable when returned)
+    const [noSelectedAlert, setNoSelectedAlert] = useState(false);
+    const [page, setPage] = useState(0); // initialize table page as 0
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -113,21 +117,14 @@ function Main() {
     };
     // async function call to backend to retrieve course data
     const fetch_data = async (prereq_ls) => {
-        // const chosen_courses = Object.values(courseValues).map((entry, index) => entry);
-        // setChosenLength(chosen_courses.length);
-        // const prereqs = prereq_ls.filter((entry) => (!chosen_courses.includes(entry))); // prereqs contains a ls of course names to be taken in order (without chosen_courses)
-
         // call to backend for courses data
-        // let chosen_data = [];
         let prereq_data = [];
         try {
-            // chosen_data = await fetch_request(chosen_courses);
             prereq_data = await fetch_request(prereq_ls);
         } catch (error) {
             console.log('Error occurred during fetch_data function for retrieving data for courses:', error);
         } finally {
             // construct table
-            // const chosen_rows = courseLoop(chosen_courses, chosen_data); // for user chosen courses
             const prereq_rows = courseLoop(prereq_ls, prereq_data);
             setTableRows(prereq_rows);
         };
@@ -179,9 +176,21 @@ function Main() {
             setOpenBackdrop(false);
         };
     };
-    // for removing the courses that were marked 'taken' in edit mode
+    // for removing the courses that were marked 'taken' in edit mode and other operations
     const courseTaken = (newEdited) => {
-        setEditedList(newEdited);
+        if (Object.keys(newEdited).length > 0) {
+            setEditedList(newEdited);
+            let taken_ls = [];
+            for (let ref in editedList) {
+                if (editedList[ref][1].taken) {
+                    taken_ls.push(parseInt(ref));
+                };
+            };
+            console.log('Data!', taken_ls);
+            const takenCourses = tableRows.filter((course_object) => !taken_ls.includes(parseInt(course_object.reference)));
+            setTableRows(takenCourses);
+            console.log('Rows:', tableRows);
+        };
     };
     // for backdrop button
     const handleBackdropClose = () => {
@@ -193,7 +202,12 @@ function Main() {
     };
     // The edit button for courses (to swap or to delete)
     const handleEdit = () => {
-        setOpenBackdrop(true);
+        if (selectedRows.length > 0) {
+            setOpenBackdrop(true);
+            setNoSelectedAlert(false);
+        } else {
+            setNoSelectedAlert(true);
+        };
     }
     // The back button
     const handleBack = () => {
@@ -316,6 +330,9 @@ function Main() {
                 return (
                     <div className="step-content">
                         <p className="explanation">Schedule:</p>
+                        {noSelectedAlert && (
+                            <Alert severity="error">You have not selected any courses from the table to edit!</Alert>
+                        )}
                         <div>
                             <EnhancedTable rows={tableRows} columns={tableColumns} chosen_length={chosenLength} onSelectedRowsChange={handleSelectedRowsChange} courseSelected={selectedRows} />
                         </div>
@@ -477,10 +494,17 @@ function Main() {
         if (count >= 3) {
             initial_prereq(); // call async function only when count >= 3
             setSelectedRows([]); // clear selected rows if courses have changed
+            setSearchParams(prev => {
+                const zero = 0;
+                prev.set('page', zero.toString()); // set page to zero
+                return prev;
+            })
         };
     }, [JSON.stringify(courseValues)])
     // everytime selected value changes
     useEffect(() => {
+        // for handling alert component
+        if (selectedRows.length > 0) setNoSelectedAlert(false);
         // upon initialization use selected course ref as key and make selectedIndex first entry on ls for value
         for (let key in editedList) {
             if (!selectedRows.includes(key)) {

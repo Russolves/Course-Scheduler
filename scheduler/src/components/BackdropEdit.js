@@ -34,7 +34,7 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
         const initialCourse = findCourse(0);
         setCourseData(initialCourse);
         setCourseName(`${initialCourse.code} - ${initialCourse.name}`);
-    }, [rows, selected]);
+    }, [selected]);
     // for reading in edited data
     useEffect(() => {
         for (let ref in editedCourseList) {
@@ -123,6 +123,7 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
         // for detecting and returning changes in edited list to parent component Main.js
         onCourseEdit(editedCourseList);
         setSelectedIndex(0);
+        onCourseEdit({});
     };
     return (
         <Box

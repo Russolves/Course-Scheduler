@@ -12,8 +12,12 @@ import Checkbox from '@mui/material/Checkbox';
 import Row from './Row';
 import PropTypes from 'prop-types';
 import Box from '@mui/material/Box';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+
 
 export default function EnhancedTable({ rows, columns, chosen_length, onSelectedRowsChange, courseSelected }) {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(3);
   const [selected, setSelected] = useState(courseSelected);
@@ -22,18 +26,29 @@ export default function EnhancedTable({ rows, columns, chosen_length, onSelected
   useEffect(() => {
     onSelectedRowsChange(selected);
   }, [selected, onSelectedRowsChange]);
-
-  const handleChangePage = (event, newPage) => {
-    // arriving at first page changes page length to number of user chosen courses
-    // if (newPage === 0) {
-    //   setRowsPerPage(chosen_length);
-    // };
-    setPage(newPage);
+  // for reading initial values from URL on component mount
+  useEffect(() => {
+    const course_page = searchParams.get('page') || 0;
+    setPage(parseInt(course_page));
+  }, [searchParams]);
+  // function to update URL when page changes
+  const updateUrlPage = (newPage) => {
+    setSearchParams(prev => {
+      if (newPage >= 0) prev.set('page', newPage.toString());
+      return prev;
+    })
   };
+  // Modified page change handler
+  const handleChangePage = (event, newPage) => {
+    updateUrlPage(newPage);
+    setPage(newPage);
+  }
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
+    setPage(0); // Reset to first page when changing rows per page
+    updateUrlPage(0);
   };
 
   const handleSelectAllClick = (event) => {
@@ -67,10 +82,8 @@ export default function EnhancedTable({ rows, columns, chosen_length, onSelected
 
   const isSelected = (reference) => selected.indexOf(reference) !== -1;
   const displayPage = () => {
-    if (page === 0 && rowsPerPage === chosen_length) {
-      return 'Showing results for selected year'
-    }
-    return '';
+    const year = Math.ceil((parseInt(page) + 1) / 2);
+    return `Year ${year} schedule`;
   };
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden' }}>
@@ -116,13 +129,14 @@ export default function EnhancedTable({ rows, columns, chosen_length, onSelected
       <Box display="flex" justifyContent="flex-end" alignItems="center" padding={1}>
         <Box mr={2} style={{marginBottom:'0.3rem'}}><strong>{displayPage()}</strong></Box>
         <TablePagination
-          rowsPerPageOptions={[5]}
+          rowsPerPageOptions={[3, 4, 5]}
           component="div"
           count={rows.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Courses per page:"
         />
       </Box>
     </Paper>

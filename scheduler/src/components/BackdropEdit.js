@@ -49,7 +49,7 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
             setSelectedDone(false);
         };
     }, [selectedIndex]);
-    
+
     useEffect(() => {
         // setting read data from editedCourseList
         for (let ref in editedCourseList) {
@@ -310,5 +310,4 @@ BackdropEdit.propTypes = {
     onFinishBackdropClose: PropTypes.func.isRequired,
     onCourseEdit: PropTypes.func.isRequired,
     editedCourseList: PropTypes.object.isRequired,
-    backDrop: PropTypes.bool.isRequired,
 };

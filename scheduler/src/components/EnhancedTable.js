@@ -15,7 +15,7 @@ import Box from '@mui/material/Box';
 
 export default function EnhancedTable({ rows, columns, chosen_length, onSelectedRowsChange, courseSelected }) {
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(chosen_length);
+  const [rowsPerPage, setRowsPerPage] = useState(3);
   const [selected, setSelected] = useState(courseSelected);
 
   // for detecting should selected rows change
@@ -25,9 +25,9 @@ export default function EnhancedTable({ rows, columns, chosen_length, onSelected
 
   const handleChangePage = (event, newPage) => {
     // arriving at first page changes page length to number of user chosen courses
-    if (newPage === 0) {
-      setRowsPerPage(chosen_length);
-    };
+    // if (newPage === 0) {
+    //   setRowsPerPage(chosen_length);
+    // };
     setPage(newPage);
   };
 

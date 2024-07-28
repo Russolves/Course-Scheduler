@@ -113,23 +113,23 @@ function Main() {
     };
     // async function call to backend to retrieve course data
     const fetch_data = async (prereq_ls) => {
-        const chosen_courses = Object.values(courseValues).map((entry, index) => entry);
-        setChosenLength(chosen_courses.length);
-        const prereqs = prereq_ls.filter((entry) => (!chosen_courses.includes(entry))); // prereqs contains a ls of course names to be taken in order (without chosen_courses)
+        // const chosen_courses = Object.values(courseValues).map((entry, index) => entry);
+        // setChosenLength(chosen_courses.length);
+        // const prereqs = prereq_ls.filter((entry) => (!chosen_courses.includes(entry))); // prereqs contains a ls of course names to be taken in order (without chosen_courses)
+
         // call to backend for courses data
-        let chosen_data = [];
+        // let chosen_data = [];
         let prereq_data = [];
         try {
-            chosen_data = await fetch_request(chosen_courses);
-            prereqs.reverse(); // reverse prereq list (to display courses in the right order)
-            prereq_data = await fetch_request(prereqs);
+            // chosen_data = await fetch_request(chosen_courses);
+            prereq_data = await fetch_request(prereq_ls);
         } catch (error) {
             console.log('Error occurred during fetch_data function for retrieving data for courses:', error);
         } finally {
             // construct table
-            const chosen_rows = courseLoop(chosen_courses, chosen_data); // for user chosen courses
-            const prereq_rows = courseLoop(prereqs, prereq_data);
-            setTableRows([...chosen_rows, ...prereq_rows]);
+            // const chosen_rows = courseLoop(chosen_courses, chosen_data); // for user chosen courses
+            const prereq_rows = courseLoop(prereq_ls, prereq_data);
+            setTableRows(prereq_rows);
         };
     };
     // for loop function to return createData list
@@ -465,6 +465,7 @@ function Main() {
                 console.log('Initial suggestion:', initial_suggestion);
                 console.log('Ref_prereq:', ref_prereq); // prereqs based on references
                 console.log('Course_prereq:', course_prereq); // additional supplement if course is -1 for reference
+                prereq_ls.reverse(); // reverse prereq list (to display courses in the right order)
                 setPrereqList(prereq_ls); // set prereqList
             } catch (error) {
                 console.log('Something went wrong during the initial_prereq async function call for reflecting user course changes:', error);

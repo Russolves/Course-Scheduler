@@ -519,6 +519,7 @@ function Main() {
         // make async call to backend for fetching all necessary data
         fetch_data(prereqList); // prereqList is name of courses to be taken in order
     }, [prereqList]);
+    
     // selected values
     const handlegradChange = (event) => {
         setGradOr(event.target.value); // empty string

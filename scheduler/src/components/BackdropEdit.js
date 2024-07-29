@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -13,7 +13,7 @@ import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import CheckIcon from '@mui/icons-material/Check';
 
-export default function BackdropEdit({ rows, selected, onFinishBackdropClose, onCourseEdit, editedCourseList, setSelectedRows }) {
+export default function BackdropEdit({ rows, selected, onFinishBackdropClose, onCourseEdit, editedCourseList, setSelectedRows, refPrereq, coursePrereq, refCourse }) {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [courseData, setCourseData] = useState({});
     const [courseName, setCourseName] = useState('');
@@ -27,6 +27,8 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
     const [selectedDone, setSelectedDone] = useState(false); // to see if selected edit has reached last element
     // {} for each selected course with reference as key and ls as value: [selectedIndex, {taken: true/false}]
     const [takenCourse, setTakenCourse] = useState(false); // for showing checkmark for taken this course
+    const [prereqOf, setprereqOf] = useState([]); // for second table
+    const [prereqOfName, setprereqOfName] = useState(''); // for telling the user which course requires this current course
 
     // Initialize first course on selected list
     useEffect(() => {
@@ -65,19 +67,56 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
                 break
             }
         };
-    }, [editedCourseList])
+    }, [editedCourseList]);
+
+    // useEffect(() => {
+    //     console.log('Updated prereqOf:', prereqOf);
+    //     console.log('Updated prereqOfName:', prereqOfName);
+    // }, [prereqOf, prereqOfName]);
+
     // function to find course data within rows ls of objects
-    function findCourse(index) {
+    const findCourse = useCallback((index) => {
         if (selected.length === 0 || index >= selected.length) {
-            return {};
+          return;
         }
-        let course_interest = {};
-        for (let course of rows) {
-            if (parseInt(course.reference) === parseInt(selected[index])) {
-                course_interest = course;
-                break; // stop searching once target course is found
+    
+        const selectedRef = parseInt(selected[index]);
+        const course_interest = rows.find(course => parseInt(course.reference) === selectedRef) || {};
+        const ref = course_interest.reference;
+    
+        let newPrereqOf = [];
+        let newPrereqOfName = '';
+    
+        // First pass: check for direct matches
+        for (let key in refPrereq) {
+          if (refPrereq[key].length > 0 && refPrereq[key][0].includes(ref)) {
+            newPrereqOf = coursePrereq[key].map((combo, i) => [combo, i === 0]);
+            newPrereqOfName = refCourse[key];
+            break;
+          }
+        }
+    
+        // Second pass: check for indirect matches if no direct match found
+        if (newPrereqOf.length === 0) {
+          for (let key in refPrereq) {
+            let ls = [];
+            for (let index in refPrereq[key]) {
+              if (refPrereq[key][index].includes(ref)) {
+                ls.push([coursePrereq[key][index], true]);
+                newPrereqOfName = refCourse[key];
+              } else {
+                ls.push([coursePrereq[key][index], false]);
+              }
             }
-        };
+            if (ls.length > 0) {
+              newPrereqOf = ls;
+              break;
+            }
+          }
+        }
+    
+        setprereqOf(newPrereqOf);
+        setprereqOfName(newPrereqOfName);
         setCoursePrereqs(course_interest.prereq || []);
         setCourseDescription(course_interest.description || '');
         setCourseCredits(course_interest.credits || '');
@@ -86,8 +125,29 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
         setCourseTypes(course_interest.types || '');
         setCourseGrad(course_interest.grad || false);
         return course_interest;
-    };
-
+    }, [rows, selected, refPrereq, coursePrereq, refCourse]);
+    // altering prereqOf when clicking on use
+    const alter_prereqOf = (index) => () => {
+        const course_interest = rows.find(course => parseInt(course.reference) === parseInt(selected[selectedIndex])) || {};
+        let courses_swap = [];
+        let ref_swap = [];
+        for (let i in prereqOf) {
+            if (parseInt(i) === index) {
+                ref_swap = // for reference ls
+                courses_swap = prereqOf[i][0];
+            }
+        };
+        // edit value for updating checkmark
+        setprereqOf(prevPrereqOf => 
+          prevPrereqOf.map((item, i) => 
+            [item[0], i === index]
+          )
+        );
+        console.log('Swap to:', courses_swap);
+        editedCourseList[course_interest.reference][1].courses_swap = courses_swap;
+        editedCourseList[course_interest.reference][1].ref_swap = ref_swap;
+        console.log('Edited list:', editedCourseList);
+      };
     const previousCourse = () => {
         if (selected.length > 1) setSelectedDone(false);
         setSelectedIndex((prevIndex) => {
@@ -214,23 +274,45 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
                         </TableContainer>
                     </div>
                     <div style={{ marginLeft: '9.0rem' }}>
-                        <h5>COURSENAMEHERE requires this course</h5>
-                        <TableContainer component={Paper} sx={{ maxHeight: 300, width: 400 }}>
+                        {(prereqOfName !== '') ? (<h5>{prereqOfName} requires this course</h5>) : <h5 style={{ marginTop: '4.0rem' }}></h5>}
+                        <TableContainer component={Paper} sx={{ maxHeight: 300, width: 450 }}>
                             <Table stickyHeader aria-label="sticky table">
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell>Header 1</TableCell>
-                                        <TableCell>Header 2</TableCell>
-                                        <TableCell>Header 3</TableCell>
+                                        <TableCell>Combination</TableCell>
+                                        <TableCell>Prerequisite Courses</TableCell>
+                                        <TableCell>Currently using</TableCell>
+                                        <TableCell></TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    <TableRow>
-                                        <TableCell>Data 1</TableCell>
-                                        <TableCell>Data 2</TableCell>
-                                        <TableCell>Data 3</TableCell>
-                                    </TableRow>
-                                    {/* Add more TableRow components as needed */}
+                                    {(prereqOfName !== '') ? (
+                                        prereqOf.map((course, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell component="th" scope="row">{index + 1}</TableCell>
+                                                <TableCell>{course[0].join(', ')}</TableCell>
+                                                <TableCell>{course[1] && <CheckIcon sx={{ marginLeft: '0.5rem', color: 'black' }} />}</TableCell>
+                                                <TableCell>
+                                                    <Button sx={{
+                                                        fontSize: '0.80rem',
+                                                        color: 'black',
+                                                        borderColor: 'gold',
+                                                        ':hover': {
+                                                            color: 'gold',
+                                                            borderColor: 'black'
+                                                        }
+                                                    }} 
+                                                    variant='outlined'
+                                                    onClick={alter_prereqOf(index)}>use</Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell component="th" scope="row"></TableCell>
+                                            <TableCell>This course is not a prerequisite to any other course!</TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </TableContainer>
@@ -330,5 +412,8 @@ BackdropEdit.propTypes = {
     onFinishBackdropClose: PropTypes.func.isRequired,
     onCourseEdit: PropTypes.func.isRequired,
     editedCourseList: PropTypes.object.isRequired,
-    setSelectedRows: PropTypes.func.isRequired
+    setSelectedRows: PropTypes.func.isRequired,
+    refPrereq: PropTypes.object.isRequired,
+    coursePrereq: PropTypes.object.isRequired,
+    refCourse: PropTypes.object.isRequired
 };

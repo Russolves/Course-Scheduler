@@ -64,7 +64,8 @@ function Main() {
     const [openBackdrop, setOpenBackdrop] = useState(false);
     const [editedList, setEditedList] = useState({}); // pass into child component BackdropEdit.js (also set to this variable when returned)
     const [noSelectedAlert, setNoSelectedAlert] = useState(false);
-    const [page, setPage] = useState(0); // initialize table page as 0
+    const [refPrereq, setRefPrereq] = useState({}); // contains all prerequisites for courses chosen by user (reference)
+    const [coursePrereq, setCoursePrereq] = useState({}); // contains all prerequisites for courses chosen by user (course code)
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -182,7 +183,7 @@ function Main() {
                 };
             };
             console.log('Data!', taken_ls);
-            const takenCourses = tableRows.filter((course_object) => !taken_ls.includes(parseInt(course_object.reference)));
+            const takenCourses = tableRows.filter((course_object) => !taken_ls.includes(parseInt(course_object.reference))); // remove courses marked taken
             setTableRows(takenCourses);
             console.log('Rows:', tableRows);
         };
@@ -336,7 +337,7 @@ function Main() {
                                 open={openBackdrop}
                                 onClick={handleBackdropClose}
                             >
-                                <BackdropEdit rows={tableRows} selected={selectedRows} onFinishBackdropClose={handleFinishBackdropClose} onCourseEdit={courseTaken} editedCourseList={editedList} setSelectedRows={handleSelectedRowsChange} />
+                                <BackdropEdit rows={tableRows} selected={selectedRows} onFinishBackdropClose={handleFinishBackdropClose} onCourseEdit={courseTaken} editedCourseList={editedList} setSelectedRows={handleSelectedRowsChange} refPrereq={refPrereq} coursePrereq={coursePrereq} refCourse={refCourse} />
                             </Backdrop>
                         </div>
                         {/* <div className="multi-column-container" style={{paddingRight:'10rem'}}>
@@ -474,9 +475,10 @@ function Main() {
                 let prereq_ls = [];
                 initial_suggestion.forEach((entry) => prereq_ls.push(refCourse[entry]));
                 console.log('Initial suggestion:', initial_suggestion);
-                console.log('Ref_prereq:', ref_prereq); // prereqs based on references
-                console.log('Course_prereq:', course_prereq); // additional supplement if course is -1 for reference
-                prereq_ls.reverse(); // reverse prereq list (to display courses in the right order)
+                setRefPrereq(ref_prereq);
+                setCoursePrereq(course_prereq);
+                // console.log('Ref_prereq:', ref_prereq); // prereqs based on references
+                // console.log('Course_prereq:', course_prereq); // additional supplement if course is -1 for reference
                 setPrereqList(prereq_ls); // set prereqList
             } catch (error) {
                 console.log('Something went wrong during the initial_prereq async function call for reflecting user course changes:', error);
@@ -519,7 +521,7 @@ function Main() {
         // make async call to backend for fetching all necessary data
         fetch_data(prereqList); // prereqList is name of courses to be taken in order
     }, [prereqList]);
-    
+
     // selected values
     const handlegradChange = (event) => {
         setGradOr(event.target.value); // empty string

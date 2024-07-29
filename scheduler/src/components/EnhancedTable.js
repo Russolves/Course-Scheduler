@@ -15,7 +15,7 @@ import Box from '@mui/material/Box';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 
-export default function EnhancedTable({ rows, columns, chosen_length, onSelectedRowsChange, courseSelected }) {
+export default function EnhancedTable({ rows, columns, chosen_length, setSelectedRows, courseSelected }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(0);
@@ -24,8 +24,11 @@ export default function EnhancedTable({ rows, columns, chosen_length, onSelected
 
   // for detecting should selected rows change
   useEffect(() => {
-    onSelectedRowsChange(selected);
-  }, [selected, onSelectedRowsChange]);
+    setSelected(courseSelected);
+  }, [courseSelected]);
+  useEffect(() => {
+    setSelectedRows(selected);
+  }, [selected, setSelectedRows]);
   // for reading initial values from URL on component mount
   useEffect(() => {
     const course_page = searchParams.get('page') || 0;
@@ -55,9 +58,9 @@ export default function EnhancedTable({ rows, columns, chosen_length, onSelected
     if (event.target.checked) {
       const newSelected = rows.map((n) => n.reference);
       setSelected(newSelected);
-      return;
+    } else {
+      setSelected([]);
     }
-    setSelected([]);
   };
 
   const handleClick = (event, reference) => {
@@ -154,6 +157,6 @@ EnhancedTable.propTypes = {
     }),
   ).isRequired,
   chosen_length: PropTypes.number.isRequired,
-  onSelectedRowsChange: PropTypes.func.isRequired,
+  setSelectedRows: PropTypes.func.isRequired,
   courseSelected: PropTypes.arrayOf(PropTypes.number).isRequired,
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './Main.css';
 import EnhancedTable from '../components/EnhancedTable';
 import BackdropEdit from '../components/BackdropEdit';
@@ -93,10 +93,6 @@ function Main() {
             setSlideDirection('slide-left');
             setActiveStep((prevActiveStep) => prevActiveStep + 1);
             setSkipped(newSkipped);
-            // make async call to backend for fetching all necessary data
-            if (activeStep === 1) {
-                fetch_data(prereqList); // prereqList is name of courses to be taken in order
-            };
         }
         // reset the animation after it has been played
         setTimeout(() => {
@@ -171,11 +167,10 @@ function Main() {
         };
     };
     // for closing backdrop through finish button in child component
-    const handleFinishBackdropClose = (close) => {
-        if (close) {
-            setOpenBackdrop(false);
-        };
-    };
+    const handleFinishBackdropClose = () => {
+        setOpenBackdrop(false);
+        setSelectedRows([]);  // Clear selected rows when finishing edit
+      };
     // for removing the courses that were marked 'taken' in edit mode and other operations
     const courseTaken = (newEdited) => {
         if (Object.keys(newEdited).length > 0) {
@@ -196,10 +191,9 @@ function Main() {
     const handleBackdropClose = () => {
         setOpenBackdrop(false);
     };
-    // function to handle selected rows change from child component (enhancedtable.js)
-    const handleSelectedRowsChange = (newSelectedRows) => {
+    const handleSelectedRowsChange = useCallback((newSelectedRows) => {
         setSelectedRows(newSelectedRows);
-    };
+      }, []);
     // The edit button for courses (to swap or to delete)
     const handleEdit = () => {
         if (selectedRows.length > 0) {
@@ -334,7 +328,7 @@ function Main() {
                             <Alert severity="error">You have not selected any courses from the table to edit!</Alert>
                         )}
                         <div>
-                            <EnhancedTable rows={tableRows} columns={tableColumns} chosen_length={chosenLength} onSelectedRowsChange={handleSelectedRowsChange} courseSelected={selectedRows} />
+                            <EnhancedTable rows={tableRows} columns={tableColumns} chosen_length={chosenLength} setSelectedRows={handleSelectedRowsChange} courseSelected={selectedRows} />
                         </div>
                         <div>
                             <Backdrop
@@ -342,7 +336,7 @@ function Main() {
                                 open={openBackdrop}
                                 onClick={handleBackdropClose}
                             >
-                                <BackdropEdit rows={tableRows} selected={selectedRows} onFinishBackdropClose={handleFinishBackdropClose} onCourseEdit={courseTaken} editedCourseList={editedList} />
+                                <BackdropEdit rows={tableRows} selected={selectedRows} onFinishBackdropClose={handleFinishBackdropClose} onCourseEdit={courseTaken} editedCourseList={editedList} setSelectedRows={handleSelectedRowsChange} />
                             </Backdrop>
                         </div>
                         {/* <div className="multi-column-container" style={{paddingRight:'10rem'}}>
@@ -520,6 +514,11 @@ function Main() {
             initial_index += 1;
         };
     }, [selectedRows]);
+    // only update prereqList when it changes
+    useEffect(() => {
+        // make async call to backend for fetching all necessary data
+        fetch_data(prereqList); // prereqList is name of courses to be taken in order
+    }, [prereqList]);
     // selected values
     const handlegradChange = (event) => {
         setGradOr(event.target.value); // empty string

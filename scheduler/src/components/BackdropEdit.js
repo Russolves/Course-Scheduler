@@ -13,7 +13,7 @@ import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import CheckIcon from '@mui/icons-material/Check';
 
-export default function BackdropEdit({ rows, selected, onFinishBackdropClose, onCourseEdit, editedCourseList }) {
+export default function BackdropEdit({ rows, selected, onFinishBackdropClose, onCourseEdit, editedCourseList, setSelectedRows }) {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [courseData, setCourseData] = useState({});
     const [courseName, setCourseName] = useState('');
@@ -28,12 +28,19 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
     // {} for each selected course with reference as key and ls as value: [selectedIndex, {taken: true/false}]
     const [takenCourse, setTakenCourse] = useState(false); // for showing checkmark for taken this course
 
-    // initialize first course on selected list
+    // Initialize first course on selected list
     useEffect(() => {
-        (selected.length === 1) ? setSelectedDone(true) : setSelectedDone(false);
-        const initialCourse = findCourse(0);
-        setCourseData(initialCourse);
-        setCourseName(`${initialCourse.code} - ${initialCourse.name}`);
+        if (selected.length === 0) {
+            // Handle empty selection
+            setCourseData({});
+            setCourseName('');
+            setSelectedDone(true);
+        } else {
+            setSelectedDone(selected.length === 1);
+            const initialCourse = findCourse(0);
+            setCourseData(initialCourse);
+            setCourseName(`${initialCourse.code} - ${initialCourse.name}`);
+        }
     }, [selected]);
     // for reading in edited data
     useEffect(() => {
@@ -61,6 +68,9 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
     }, [editedCourseList])
     // function to find course data within rows ls of objects
     function findCourse(index) {
+        if (selected.length === 0 || index >= selected.length) {
+            return {};
+        }
         let course_interest = {};
         for (let course of rows) {
             if (parseInt(course.reference) === parseInt(selected[index])) {
@@ -68,13 +78,13 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
                 break; // stop searching once target course is found
             }
         };
-        setCoursePrereqs(course_interest.prereq);
-        setCourseDescription(course_interest.description);
-        setCourseCredits(course_interest.credits);
-        setCourseTime(course_interest.time);
-        setCourseCampus(course_interest.campus);
-        setCourseTypes(course_interest.types);
-        setCourseGrad(course_interest.grad);
+        setCoursePrereqs(course_interest.prereq || []);
+        setCourseDescription(course_interest.description || '');
+        setCourseCredits(course_interest.credits || '');
+        setCourseTime(course_interest.time || '');
+        setCourseCampus(course_interest.campus || '');
+        setCourseTypes(course_interest.types || '');
+        setCourseGrad(course_interest.grad || false);
         return course_interest;
     };
 
@@ -120,11 +130,20 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
     // pressing the finish editing button
     const completeEdit = () => {
         onFinishBackdropClose(true);
-        // for detecting and returning changes in edited list to parent component Main.js
         onCourseEdit(editedCourseList);
         setSelectedIndex(0);
-        onCourseEdit({});
+        setSelectedRows([]); // Reset selected rows to empty list
+        // Immediately clear the current course data
+        setCourseData({});
+        setCourseName('');
+        setSelectedDone(true);
+        setTakenCourse(false);
     };
+
+    // Render null of there's no selection
+    if (selected.length === 0) {
+        return null;
+    }
     return (
         <Box
             onClick={(e) => e.stopPropagation()}
@@ -311,4 +330,5 @@ BackdropEdit.propTypes = {
     onFinishBackdropClose: PropTypes.func.isRequired,
     onCourseEdit: PropTypes.func.isRequired,
     editedCourseList: PropTypes.object.isRequired,
+    setSelectedRows: PropTypes.func.isRequired
 };

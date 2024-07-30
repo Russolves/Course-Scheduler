@@ -1,5 +1,4 @@
 const khan_algorithm = (ref_prereq, ref_output) => {
-    console.log('ref_output:', ref_output);
     let adj = [];
     // for constructing adj ls for topological sorting
     for (key in ref_prereq) {

@@ -66,6 +66,7 @@ function Main() {
     const [noSelectedAlert, setNoSelectedAlert] = useState(false);
     const [refPrereq, setRefPrereq] = useState({}); // contains all prerequisites for courses chosen by user (reference)
     const [coursePrereq, setCoursePrereq] = useState({}); // contains all prerequisites for courses chosen by user (course code)
+    const [missingCourses, setMissingCourses] = useState([]); // for missing courses list
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -171,21 +172,91 @@ function Main() {
     const handleFinishBackdropClose = () => {
         setOpenBackdrop(false);
         setSelectedRows([]);  // Clear selected rows when finishing edit
-      };
-    // for removing the courses that were marked 'taken' in edit mode and other operations
-    const courseTaken = (newEdited) => {
+    };
+    // for removing the courses that were marked 'taken' in edit mode and other operations for 'edit'
+    const courseTaken = async (newEdited) => {
         if (Object.keys(newEdited).length > 0) {
             setEditedList(newEdited);
             let taken_ls = [];
+            let original_ls = [];
+            let refswap_ls = [];
+            let courseswap_ls = [];
             for (let ref in editedList) {
                 if (editedList[ref][1].taken) {
                     taken_ls.push(parseInt(ref));
                 };
+                if (editedList[ref][1].original_courses) {
+                    original_ls.push(...editedList[ref][1].original_courses);
+                };
+                if (editedList[ref][1].ref_swap) {
+                    refswap_ls.push(...editedList[ref][1].ref_swap);
+                };
+                if (editedList[ref][1].courses_swap) {
+                    courseswap_ls.push(...editedList[ref][1].courses_swap);
+                };
             };
-            console.log('Data!', taken_ls);
-            const takenCourses = tableRows.filter((course_object) => !taken_ls.includes(parseInt(course_object.reference))); // remove courses marked taken
-            setTableRows(takenCourses);
+            console.log('newEditedList!', Object.entries(newEdited));
+            // remove original courses then put in new ones
+            const originalRemoved = tableRows.filter((course_object) => !original_ls.includes(course_object.code.trim()));
+            const afterRemoved = originalRemoved.map((entry, index) => `${entry.code.trim()} - ${entry.name.trim()}`);
+            let refSwap = []; // for placing added courses' references in
+            let missing_courses = []; // for putting in missing courses not available in database
+            for (let index in refswap_ls) {
+                if (refswap_ls[index] === -1) {
+                    missing_courses.push(courseswap_ls[index]);
+                } else {
+                    refSwap.push(refCourse[refswap_ls[index]]);
+                }
+            };
+            const refSwap_set = new Set(refSwap);
+            refSwap = Array.from(refSwap_set); // ensure that there are no duplicate entries
+            const course_values = [...afterRemoved, ...refSwap];
+            const data = await update_selection(course_values); // returned in order ls based on suggestion for course order, ref_prereq, course_prereq
+            const suggestion = data.payload[0];
+            const ref_prereq = data.payload[1];
+            const course_prereq = data.payload[2];
+            let prereq_ls = [];
+            suggestion.forEach((entry) => prereq_ls.push(refCourse[entry]));
+            console.log('Suggestion:', prereq_ls);
+            // Update tableRows with the new suggestion
+            const newTableRows = suggestion.map(entry => {
+                const course = refCourse[entry];
+                const course_code = course.slice(0, course.indexOf('-')).trim();
+                const course_name = course.slice(course.indexOf(' - ') + ' - '.length).trim();
+                const course_data = data.payload.find(item => item.reference === entry) || {};
+
+                return createData(
+                    entry, // reference
+                    course_code,
+                    course_name,
+                    course_data.credit_hours?.join(', ') || '',
+                    course_data.time_offered?.join(', ') || '',
+                    course_data.campus?.join(', ') || '',
+                    (course_data.schedule_types || []).map(type => type.replace(/<[^>]*>/g, '')).join(', '),
+                    course_data.course_description || '',
+                    course_data.grad === undefined ? undefined : Boolean(course_data.grad),
+                    course_data.levels?.join(', ') || '',
+                    course_data.prereq_courses || []
+                );
+            });
+
+            setTableRows(newTableRows);
+            setTableRows(newTableRows);
+            setRefPrereq(ref_prereq); // setting the different prereqs (course reference)
+            setCoursePrereq(course_prereq); // setting the different prereqs (course name/code)
+            setMissingCourses(missing_courses);
+            // remove courses marked taken
+            setTableRows(prevRows => {
+                const takenCourses = prevRows.filter((course_object) => !taken_ls.includes(parseInt(course_object.reference)));
+                return takenCourses;
+            });
             console.log('Rows:', tableRows);
+            // set page to zero
+            setSearchParams(prev => {
+                const zero = 0;
+                prev.set('page', zero.toString());
+                return prev;
+            })
         };
     };
     // for backdrop button
@@ -194,7 +265,7 @@ function Main() {
     };
     const handleSelectedRowsChange = useCallback((newSelectedRows) => {
         setSelectedRows(newSelectedRows);
-      }, []);
+    }, []);
     // The edit button for courses (to swap or to delete)
     const handleEdit = () => {
         if (selectedRows.length > 0) {
@@ -329,7 +400,7 @@ function Main() {
                             <Alert severity="error">You have not selected any courses from the table to edit!</Alert>
                         )}
                         <div>
-                            <EnhancedTable rows={tableRows} columns={tableColumns} chosen_length={chosenLength} setSelectedRows={handleSelectedRowsChange} courseSelected={selectedRows} />
+                            <EnhancedTable key={tableRows.map(row => row.reference).join(',')} rows={tableRows} columns={tableColumns} chosen_length={chosenLength} setSelectedRows={handleSelectedRowsChange} courseSelected={selectedRows} />
                         </div>
                         <div>
                             <Backdrop
@@ -451,24 +522,28 @@ function Main() {
         }
         fetch_courses();
     }, []);
+    // for calling backend and returning prereq_ls
+    async function update_selection(course_values) {
+        try {
+            const response = await fetch(`${backend_uri}/selection`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(course_values)
+            })
+            const data = await response.json(); // data.message contains the status of the message
+            return data;
+        } catch (error) {
+            console.log('Something went wrong during the updating of useEffect update_selection:', error);
+        }
+    };
+    useEffect(() => {
+        console.log('Table rows changed!', tableRows);
+    }, [tableRows]);
     // everytime courseValues changes
     useEffect(() => {
-        async function update_selection() {
-            try {
-                const response = await fetch(`${backend_uri}/selection`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(courseValues)
-                })
-                const data = await response.json(); // data.message contains the status of the message
-                return data;
-            } catch (error) {
-                console.log('Something went wrong during the updating of useEffect update_selection:', error);
-            }
-        };
         async function initial_prereq() {
             try {
-                const data = await update_selection(); // returned in order ls based on initial_suggestion for course order, ref_prereq, course_prereq
+                const data = await update_selection(courseValues); // returned in order ls based on initial_suggestion for course order, ref_prereq, course_prereq
                 const initial_suggestion = data.payload[0];
                 const ref_prereq = data.payload[1];
                 const course_prereq = data.payload[2];
@@ -518,6 +593,7 @@ function Main() {
     }, [selectedRows]);
     // only update prereqList when it changes
     useEffect(() => {
+        console.log('prereqList updated!');
         // make async call to backend for fetching all necessary data
         fetch_data(prereqList); // prereqList is name of courses to be taken in order
     }, [prereqList]);

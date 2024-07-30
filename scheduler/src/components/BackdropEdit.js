@@ -92,6 +92,7 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
           if (refPrereq[key].length > 0 && refPrereq[key][0].includes(ref)) {
             newPrereqOf = coursePrereq[key].map((combo, i) => [combo, i === 0]);
             newPrereqOfName = refCourse[key];
+            if (editedCourseList[course_interest.reference]) editedCourseList[course_interest.reference][1].original_courses = coursePrereq[key][0]; // setting editedlist for original courses
             break;
           }
         }
@@ -104,6 +105,7 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
               if (refPrereq[key][index].includes(ref)) {
                 ls.push([coursePrereq[key][index], true]);
                 newPrereqOfName = refCourse[key];
+                if (editedCourseList[course_interest.reference]) editedCourseList[course_interest.reference][1].original_courses = coursePrereq[key][index]; // setting editedlist for original courses
               } else {
                 ls.push([coursePrereq[key][index], false]);
               }
@@ -133,8 +135,16 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
         let ref_swap = [];
         for (let i in prereqOf) {
             if (parseInt(i) === index) {
-                ref_swap = // for reference ls
-                courses_swap = prereqOf[i][0];
+                // look for reference of prereqOf course
+                let reference = -1;
+                for (let ref in refCourse) {
+                    if (refCourse[ref] === prereqOfName) {
+                        reference = parseInt(ref);
+                        break
+                    }
+                };
+                ref_swap = refPrereq[reference][i]; // for reference ls (could potentially be undefined if reference not found)
+                courses_swap = prereqOf[i][0]; // for course code & name ls
             }
         };
         // edit value for updating checkmark
@@ -143,10 +153,8 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
             [item[0], i === index]
           )
         );
-        console.log('Swap to:', courses_swap);
         editedCourseList[course_interest.reference][1].courses_swap = courses_swap;
         editedCourseList[course_interest.reference][1].ref_swap = ref_swap;
-        console.log('Edited list:', editedCourseList);
       };
     const previousCourse = () => {
         if (selected.length > 1) setSelectedDone(false);

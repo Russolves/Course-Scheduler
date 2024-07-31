@@ -200,17 +200,21 @@ function Main() {
             const originalRemoved = tableRows.filter((course_object) => !original_ls.includes(course_object.code.trim()));
             const afterRemoved = originalRemoved.map((entry, index) => `${entry.code.trim()} - ${entry.name.trim()}`);
             let refSwap = []; // for placing added courses' references in
-            let missing_courses = []; // for putting in missing courses not available in database
+            let missing_courses_set = new Set(); // for putting in missing courses not available in database
             for (let index in refswap_ls) {
                 if (refswap_ls[index] === -1) {
-                    missing_courses.push(courseswap_ls[index]);
+                    missing_courses_set.add(courseswap_ls[index]);
                 } else {
                     refSwap.push(refCourse[refswap_ls[index]]);
                 }
             };
+            const missing_courses = Array.from(missing_courses_set);
+            console.log("Missing courses", missing_courses);
             const refSwap_set = new Set(refSwap);
             refSwap = Array.from(refSwap_set); // ensure that there are no duplicate entries
-            const course_values = [...afterRemoved, ...refSwap];
+            const course_ls = [...afterRemoved, ...refSwap];
+            const course_values = course_ls.reduce((acc, course, index) => {acc[index] = course; return acc;}, {});
+            console.log('Course values:', course_values);
             const data = await update_selection(course_values); // returned in order ls based on suggestion for course order, ref_prereq, course_prereq
             const suggestion = data.payload[0];
             const ref_prereq = data.payload[1];
@@ -240,7 +244,6 @@ function Main() {
                 );
             });
 
-            setTableRows(newTableRows);
             setTableRows(newTableRows);
             setRefPrereq(ref_prereq); // setting the different prereqs (course reference)
             setCoursePrereq(course_prereq); // setting the different prereqs (course name/code)
@@ -536,9 +539,7 @@ function Main() {
             console.log('Something went wrong during the updating of useEffect update_selection:', error);
         }
     };
-    useEffect(() => {
-        console.log('Table rows changed!', tableRows);
-    }, [tableRows]);
+
     // everytime courseValues changes
     useEffect(() => {
         async function initial_prereq() {
@@ -549,7 +550,7 @@ function Main() {
                 const course_prereq = data.payload[2];
                 let prereq_ls = [];
                 initial_suggestion.forEach((entry) => prereq_ls.push(refCourse[entry]));
-                console.log('Initial suggestion:', initial_suggestion);
+                console.log('Initial suggestion:', prereq_ls);
                 setRefPrereq(ref_prereq);
                 setCoursePrereq(course_prereq);
                 // console.log('Ref_prereq:', ref_prereq); // prereqs based on references
@@ -593,7 +594,6 @@ function Main() {
     }, [selectedRows]);
     // only update prereqList when it changes
     useEffect(() => {
-        console.log('prereqList updated!');
         // make async call to backend for fetching all necessary data
         fetch_data(prereqList); // prereqList is name of courses to be taken in order
     }, [prereqList]);

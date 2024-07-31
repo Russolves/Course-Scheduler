@@ -1,47 +1,64 @@
-const khan_algorithm = (ref_prereq, ref_output) => {
+const khan_algorithm = (ref_prereq, ref_output, course_ls) => {
     let adj = [];
-    // for constructing adj ls for topological sorting
-    for (key in ref_prereq) {
+    // Helper function to find the best prerequisite combination
+    const findBestPrereq = (prereqs, course_ls) => {
+        if (!prereqs || prereqs.length === 0) return [];
+
+        let bestCombo = prereqs[0];
+        let maxMatches = 0;
+
+        for (let combo of prereqs) {
+            const matches = combo.filter(course => course_ls.includes(course.toString())).length;
+            if (matches > maxMatches || (matches === maxMatches && !combo.includes(-1))) {
+                maxMatches = matches;
+                bestCombo = combo;
+            }
+        }
+        return bestCombo;
+    };
+
+    // Construct adj list for topological sorting
+    for (let key in ref_prereq) {
         if (ref_prereq[key] === undefined) {
             adj.push([]);
         } else {
-            adj.push(ref_prereq[key]);
+            const bestPrereq = findBestPrereq(ref_prereq[key], course_ls);
+            adj.push(bestPrereq);
         }
-    };
-    let inorder = [];
-    // for constructing inorder_ls
-    adj.forEach((entry) => inorder.push(0)); // pushing zeroes in
-    for (element of adj) {
-        if (element.length > 0) {
-            for (course of element[0]) { // only used prereqs' first element (modify later)
-                inorder[course] += 1;
-            }
+    }
+    let inorder = new Array(adj.length).fill(0);
+
+    // Inorder_ls
+    for (let element of adj) {
+        for (let course of element) {
+            inorder[course] += 1;
         }
-    };
+    }
+
     let q = [];
-    for (index in inorder) {
+    for (let index in inorder) {
         if (inorder[parseInt(index)] === 0) {
             q.push(parseInt(index));
         }
-    };
+    }
+
     let sort_output = [];
     while (q.length > 0) {
         const n = q.shift();
         sort_output.push(n);
-        if (adj[n].length > 0) {
-            for (entry of adj[n][0]) { // modify later
-                inorder[entry] -= 1;
-                if (inorder[entry] === 0) {
-                    q.push(entry);
-                }
+        for (let entry of adj[n]) {
+            inorder[entry] -= 1;
+            if (inorder[entry] === 0) {
+                q.push(entry);
             }
         }
-    };
+    }
+
     sort_output.reverse(); // reverse for correct order
-    let final_output = [];
-    sort_output.forEach((course) => { // retain only the courses specified
-        if (Object.keys(ref_output).includes(course.toString())) final_output.push(course)
-    });
+    let final_output = sort_output.filter(course =>
+        Object.keys(ref_output).includes(course.toString())
+    );
+
     return final_output;
 };
 
@@ -51,7 +68,7 @@ const topological_sort = (course_ls, ref_prereq, course_ref, course_prereq) => {
     const add_output = output[1];
     // const all_combinations = generate_combinations(ref_output, add_output);
     // console.log('All combinations:', all_combinations.slice(0, 5));
-    if (ref_output !== undefined) return [khan_algorithm(ref_prereq, ref_output), ref_output, add_output]; // return based on user_input course order, ref_prereq, course_prereq in that order
+    if (ref_output !== undefined) return [khan_algorithm(ref_prereq, ref_output, course_ls), ref_output, add_output]; // return based on user_input course order, ref_prereq, course_prereq in that order
 };
 
 // recursive function for dps on course combinations
@@ -62,8 +79,8 @@ const generate_combinations = (ref_output, add_output) => {
 
     function dfs(current_combination, depth, add_obj) {
         if (depth === keys.length) {
-            result.push({...current_combination});
-            add_result.push({...add_obj});
+            result.push({ ...current_combination });
+            add_result.push({ ...add_obj });
             return;
         }
         const key = keys[depth];
@@ -109,7 +126,6 @@ const find_combinations = (course_ls, ref_prereq, course_ref, course_prereq) => 
     // console.log('Additional output:', add_ref);
     return [output, add_ref]; // return output and add_ref
 };
-
 module.exports = {
     khan_algorithm,
     topological_sort

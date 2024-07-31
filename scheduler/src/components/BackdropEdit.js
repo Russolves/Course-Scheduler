@@ -153,8 +153,8 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
             [item[0], i === index]
           )
         );
-        editedCourseList[course_interest.reference][1].courses_swap = courses_swap;
-        editedCourseList[course_interest.reference][1].ref_swap = ref_swap;
+        if (editedCourseList[course_interest.reference][1]) editedCourseList[course_interest.reference][1].courses_swap = courses_swap;
+        if (editedCourseList[course_interest.reference][1]) editedCourseList[course_interest.reference][1].ref_swap = ref_swap;
       };
     const previousCourse = () => {
         if (selected.length > 1) setSelectedDone(false);

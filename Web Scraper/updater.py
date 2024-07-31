@@ -44,7 +44,7 @@ def update_courses(client, reference_ls):
         nameRef_dict = {entry["course_name"][:entry["course_name"].index(" -")] : entry["reference"] for entry in reference_ls}
         missing_ls = []
         for course in reference_ls:
-            print(f"Updating course {course["reference"]} of {len(reference_ls)}")
+            print("Updating course " + str(course["reference"]) + " of " + str(len(reference_ls)))
             ls_ls = []
             if course.get("prereq_reference") != None and len(course["prereq_reference"]) > 0:
                 for i in range(len(course["prereq_reference"])):

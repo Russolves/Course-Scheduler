@@ -77,46 +77,88 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
     // function to find course data within rows ls of objects
     const findCourse = useCallback((index) => {
         if (selected.length === 0 || index >= selected.length) {
-          return;
+            return;
         }
-    
+
         const selectedRef = parseInt(selected[index]);
         const course_interest = rows.find(course => parseInt(course.reference) === selectedRef) || {};
         const ref = course_interest.reference;
-    
+
         let newPrereqOf = [];
         let newPrereqOfName = '';
-    
+
+        let master_key = -1; // for updating checkmarks
+        // Helper function to find the best prerequisite combination
+        const findBestPrereq = (prereqs, course_ls) => {
+            if (!prereqs || prereqs.length === 0) return [];
+
+            let bestCombo = prereqs[0];
+            let maxMatches = 0;
+
+            for (let combo of prereqs) {
+                const matches = combo.filter(course => course_ls.includes(course.toString())).length;
+                if (matches > maxMatches || (matches === maxMatches && !combo.includes(-1))) {
+                    maxMatches = matches;
+                    bestCombo = combo;
+                }
+            }
+            return bestCombo;
+        };
+
         // First pass: check for direct matches
         for (let key in refPrereq) {
-          if (refPrereq[key].length > 0 && refPrereq[key][0].includes(ref)) {
-            newPrereqOf = coursePrereq[key].map((combo, i) => [combo, i === 0]);
-            newPrereqOfName = refCourse[key];
-            if (editedCourseList[course_interest.reference]) editedCourseList[course_interest.reference][1].original_courses = coursePrereq[key][0]; // setting editedlist for original courses
-            break;
-          }
+            if (refPrereq[key].length > 0 && refPrereq[key][0].includes(ref)) {
+                const bestPrereq = findBestPrereq(coursePrereq[key], course_interest.prereq || []);
+                newPrereqOf = coursePrereq[key].map((combo, i) => {
+                    const isMatched = JSON.stringify(combo) === JSON.stringify(bestPrereq);
+                    return [combo, isMatched];
+                });
+                master_key = key;
+                newPrereqOfName = refCourse[key];
+                if (!editedCourseList[course_interest.reference]) {
+                    editedCourseList[course_interest.reference] = [-1, { taken: false, original_courses: [] }];
+                }
+                editedCourseList[course_interest.reference][1].original_courses = bestPrereq;
+                break;
+            }
         }
-    
         // Second pass: check for indirect matches if no direct match found
         if (newPrereqOf.length === 0) {
-          for (let key in refPrereq) {
-            let ls = [];
-            for (let index in refPrereq[key]) {
-              if (refPrereq[key][index].includes(ref)) {
-                ls.push([coursePrereq[key][index], true]);
-                newPrereqOfName = refCourse[key];
-                if (editedCourseList[course_interest.reference]) editedCourseList[course_interest.reference][1].original_courses = coursePrereq[key][index]; // setting editedlist for original courses
-              } else {
-                ls.push([coursePrereq[key][index], false]);
-              }
+            for (let key in refPrereq) {
+                let ls = [];
+                for (let index in refPrereq[key]) {
+                    if (refPrereq[key][index].includes(ref)) {
+                        const bestPrereq = findBestPrereq([coursePrereq[key][index]], course_interest.prereq || []);
+                        ls = coursePrereq[key].map((combo, i) => {
+                            const isMatched = JSON.stringify(combo) === JSON.stringify(bestPrereq);
+                            return [combo, isMatched];
+                        });
+                        master_key = key;
+                        newPrereqOfName = refCourse[key];
+                        if (!editedCourseList[course_interest.reference]) {
+                            editedCourseList[course_interest.reference] = [-1, { taken: false, original_courses: [] }];
+                        }
+                        editedCourseList[course_interest.reference][1].original_courses = bestPrereq;
+                        break;
+                    }
+                }
+                if (ls.length > 0) {
+                    newPrereqOf = ls;
+                    break;
+                }
             }
-            if (ls.length > 0) {
-              newPrereqOf = ls;
-              break;
-            }
-          }
         }
-    
+        // if user has already placed 'use' course value in make changes to checkmark
+        if (Object.keys(editedCourseList).length > 0 && "courses_swap" in editedCourseList[course_interest.reference][1] && "original_courses" in editedCourseList[course_interest.reference][1]) {
+            const ls = coursePrereq[master_key].map((combo, i) => {
+                const isMatched = JSON.stringify(combo) === JSON.stringify(editedCourseList[course_interest.reference][1].courses_swap);
+                return [combo, isMatched];
+            })
+            if (ls.length > 0) {
+                newPrereqOf = ls;
+            }
+        }
+
         setprereqOf(newPrereqOf);
         setprereqOfName(newPrereqOfName);
         setCoursePrereqs(course_interest.prereq || []);
@@ -148,14 +190,14 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
             }
         };
         // edit value for updating checkmark
-        setprereqOf(prevPrereqOf => 
-          prevPrereqOf.map((item, i) => 
-            [item[0], i === index]
-          )
+        setprereqOf(prevPrereqOf =>
+            prevPrereqOf.map((item, i) =>
+                [item[0], i === index]
+            )
         );
-        if (editedCourseList[course_interest.reference][1]) editedCourseList[course_interest.reference][1].courses_swap = courses_swap;
-        if (editedCourseList[course_interest.reference][1]) editedCourseList[course_interest.reference][1].ref_swap = ref_swap;
-      };
+        if (editedCourseList[course_interest.reference] && editedCourseList[course_interest.reference][1]) editedCourseList[course_interest.reference][1].courses_swap = courses_swap;
+        if (editedCourseList[course_interest.reference] && editedCourseList[course_interest.reference][1]) editedCourseList[course_interest.reference][1].ref_swap = ref_swap;
+    };
     const previousCourse = () => {
         if (selected.length > 1) setSelectedDone(false);
         setSelectedIndex((prevIndex) => {
@@ -193,7 +235,6 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
                 break;
             }
         }
-        onCourseEdit(newEditedList);
     };
     // pressing the finish editing button
     const completeEdit = () => {
@@ -309,9 +350,9 @@ export default function BackdropEdit({ rows, selected, onFinishBackdropClose, on
                                                             color: 'gold',
                                                             borderColor: 'black'
                                                         }
-                                                    }} 
-                                                    variant='outlined'
-                                                    onClick={alter_prereqOf(index)}>use</Button>
+                                                    }}
+                                                        variant='outlined'
+                                                        onClick={alter_prereqOf(index)}>use</Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))

@@ -16,7 +16,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 
 export default function EnhancedTable({ rows, columns, chosen_length, setSelectedRows, courseSelected }) {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(3);
@@ -34,6 +33,7 @@ export default function EnhancedTable({ rows, columns, chosen_length, setSelecte
     const course_page = searchParams.get('page') || 0;
     setPage(parseInt(course_page));
   }, [searchParams]);
+
   // function to update URL when page changes
   const updateUrlPage = (newPage) => {
     setSearchParams(prev => {

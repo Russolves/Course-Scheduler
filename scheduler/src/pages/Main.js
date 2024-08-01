@@ -67,6 +67,7 @@ function Main() {
     const [refPrereq, setRefPrereq] = useState({}); // contains all prerequisites for courses chosen by user (reference)
     const [coursePrereq, setCoursePrereq] = useState({}); // contains all prerequisites for courses chosen by user (course code)
     const [missingCourses, setMissingCourses] = useState([]); // for missing courses list
+    const [openCourseUpdated, setOpenCourseUpdated] = useState(false); // for setting snackbar after courses updated
 
     // define steps that can be skipped
     const isStepOptional = (step) => {
@@ -172,6 +173,11 @@ function Main() {
     const handleFinishBackdropClose = () => {
         setOpenBackdrop(false);
         setSelectedRows([]);  // Clear selected rows when finishing edit
+        setEditedList({});
+    };
+    // for closing snackbar
+    const closeUpdated = () => {
+        setOpenCourseUpdated(false);
     };
     // for removing the courses that were marked 'taken' in edit mode and other operations for 'edit'
     const courseTaken = async (newEdited) => {
@@ -195,7 +201,6 @@ function Main() {
                     courseswap_ls.push(...editedList[ref][1].courses_swap);
                 };
             };
-            console.log('newEditedList!', Object.entries(newEdited));
             // remove original courses then put in new ones
             const originalRemoved = tableRows.filter((course_object) => !original_ls.includes(course_object.code.trim()));
             const afterRemoved = originalRemoved.map((entry, index) => `${entry.code.trim()} - ${entry.name.trim()}`);
@@ -213,7 +218,7 @@ function Main() {
             const refSwap_set = new Set(refSwap);
             refSwap = Array.from(refSwap_set); // ensure that there are no duplicate entries
             const course_ls = [...afterRemoved, ...refSwap];
-            const course_values = course_ls.reduce((acc, course, index) => {acc[index] = course; return acc;}, {});
+            const course_values = course_ls.reduce((acc, course, index) => { acc[index] = course; return acc; }, {});
             console.log('Course values:', course_values);
             const data = await update_selection(course_values); // returned in order ls based on suggestion for course order, ref_prereq, course_prereq
             const suggestion = data.payload[0];
@@ -222,38 +227,47 @@ function Main() {
             let prereq_ls = [];
             suggestion.forEach((entry) => prereq_ls.push(refCourse[entry]));
             console.log('Suggestion:', prereq_ls);
-            // Update tableRows with the new suggestion
-            const newTableRows = suggestion.map(entry => {
-                const course = refCourse[entry];
-                const course_code = course.slice(0, course.indexOf('-')).trim();
-                const course_name = course.slice(course.indexOf(' - ') + ' - '.length).trim();
-                const course_data = data.payload.find(item => item.reference === entry) || {};
+            try {
+                const prereq_data = await fetch_request(prereq_ls);
+                // Update tableRows with the new suggestion
+                const newTableRows = suggestion.map(entry => {
+                    const course = refCourse[entry];
+                    const course_code = course.slice(0, course.indexOf('-')).trim();
+                    const course_name = course.slice(course.indexOf(' - ') + ' - '.length).trim();
+                    const course_data = prereq_data.payload.find(item => item.reference === entry) || {};
 
-                return createData(
-                    entry, // reference
-                    course_code,
-                    course_name,
-                    course_data.credit_hours?.join(', ') || '',
-                    course_data.time_offered?.join(', ') || '',
-                    course_data.campus?.join(', ') || '',
-                    (course_data.schedule_types || []).map(type => type.replace(/<[^>]*>/g, '')).join(', '),
-                    course_data.course_description || '',
-                    course_data.grad === undefined ? undefined : Boolean(course_data.grad),
-                    course_data.levels?.join(', ') || '',
-                    course_data.prereq_courses || []
-                );
-            });
+                    return createData(
+                        entry, // reference
+                        course_code,
+                        course_name,
+                        course_data.credit_hours?.join(', ') || '',
+                        course_data.time_offered?.join(', ') || '',
+                        course_data.campus?.join(', ') || '',
+                        (course_data.schedule_types || []).map(type => type.replace(/<[^>]*>/g, '')).join(', '),
+                        course_data.course_description || '',
+                        course_data.grad === undefined ? undefined : Boolean(course_data.grad),
+                        course_data.levels?.join(', ') || '',
+                        course_data.prereq_courses || []
+                    );
+                });
+                setTableRows(newTableRows);
+                // remove courses marked taken
+                setTableRows(prevRows => {
+                    const takenCourses = prevRows.filter((course_object) => !taken_ls.includes(parseInt(course_object.reference)));
+                    return takenCourses;
+                });
+                setRefPrereq(ref_prereq); // setting the different prereqs (course reference)
+                setCoursePrereq(course_prereq); // setting the different prereqs (course name/code)
+                setMissingCourses(missing_courses);
 
-            setTableRows(newTableRows);
-            setRefPrereq(ref_prereq); // setting the different prereqs (course reference)
-            setCoursePrereq(course_prereq); // setting the different prereqs (course name/code)
-            setMissingCourses(missing_courses);
-            // remove courses marked taken
-            setTableRows(prevRows => {
-                const takenCourses = prevRows.filter((course_object) => !taken_ls.includes(parseInt(course_object.reference)));
-                return takenCourses;
-            });
-            console.log('Rows:', tableRows);
+                console.log('New rows (before removal of courses):', newTableRows);
+                if (taken_ls.length > 0 || refswap_ls.length > 0 || tableRows.length !== newTableRows.length) {
+                    setOpenCourseUpdated(true);
+                };
+            } catch (error) {
+                console.log("Something went wrong within the courseTaken editedList function:", error);
+            }
+
             // set page to zero
             setSearchParams(prev => {
                 const zero = 0;
@@ -280,6 +294,7 @@ function Main() {
     }
     // The back button
     const handleBack = () => {
+        setOpenCourseUpdated(false);
         setStepPressed('0s forwards');
         setPlayAnimation(true);
         setSlideDirection('slide-right');
@@ -346,7 +361,8 @@ function Main() {
                             <Radio {...controlSemesterProps('summer')} sx={radio_sx} />
                             <span>Summer</span>
                         </div>
-                        <Button style={{ color: 'white', backgroundColor: 'black', width: '6.0vw' }} variant="contained" onClick={showQuestion}>Submit</Button>                    </div>
+                        {/* <Button style={{ color: 'white', backgroundColor: 'black', width: '6.0vw' }} variant="contained" onClick={showQuestion}>Submit</Button> */}
+                    </div>
                 );
             case 1:
                 return (
@@ -389,10 +405,10 @@ function Main() {
                                 ))}
                             </div>
                             <div>
-                                <Button style={{ marginBlock: '1.0rem', color: 'black' }} color="primary" onClick={addCourse}>Add Course</Button>
+                                <Button style={{ color: 'black' }} color="primary" onClick={addCourse}>Add Course</Button>
                             </div>
                         </div>
-                        <Button style={{ margin: '5px', color: 'white', backgroundColor: 'black' }} variant='contained' onClick={showInput}>Click Me</Button>
+                        {/* <Button style={{ margin: '5px', color: 'white', backgroundColor: 'black' }} variant='contained' onClick={showInput}>Click Me</Button> */}
                     </div>
                 );
             case 2:
@@ -586,7 +602,7 @@ function Main() {
         let initial_index = 0;
         for (let ref of selectedRows) {
             if (!Object.keys(editedList).includes(ref)) {
-                editedList[ref] = [-1, { taken: false }];
+                editedList[ref] = [-1, { taken: false, original_courses: [] }];
             };
             editedList[ref][0] = initial_index;
             initial_index += 1;
@@ -720,30 +736,30 @@ function Main() {
         }
         setCourseValues(courseValues);
     }
-    async function showInput() {
-        const output = Object.values(courseValues);
-        let count = 0;
-        for (let i = 0; i < output.length; i++) {
-            if (output[i] != null) {
-                count += 1;
-            }
-        };
-        if (count < 3) {
-            setShowNullAlert(true);
-        } else {
-            try {
-                const response = await fetch(`${backend_uri}/selection`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(courseValues)
-                });
-                const data = await response.json();
-                console.log('/selection API call result:', data);
-            } catch (error) {
-                console.log('Encountered error during calling of /selection API endpoint for selected courses');
-            }
-        };
-    }
+    // async function showInput() {
+    //     const output = Object.values(courseValues);
+    //     let count = 0;
+    //     for (let i = 0; i < output.length; i++) {
+    //         if (output[i] != null) {
+    //             count += 1;
+    //         }
+    //     };
+    //     if (count < 3) {
+    //         setShowNullAlert(true);
+    //     } else {
+    //         try {
+    //             const response = await fetch(`${backend_uri}/selection`, {
+    //                 method: "POST",
+    //                 headers: { "Content-Type": "application/json" },
+    //                 body: JSON.stringify(courseValues)
+    //             });
+    //             const data = await response.json();
+    //             console.log('/selection API call result:', data);
+    //         } catch (error) {
+    //             console.log('Encountered error during calling of /selection API endpoint for selected courses');
+    //         }
+    //     };
+    // }
     return (
         <div className='page'>
             <Box width="75vw">
@@ -826,6 +842,18 @@ function Main() {
                         {snackbarStatusSemester &&
                             `Course chosen is not being offered for ${semester} semester`
                         }
+                    </div>
+                </Alert>
+            </Snackbar>
+            <Snackbar open={openCourseUpdated} autoHideDuration={6000} onClose={closeUpdated}>
+                <Alert
+                    onClose={closeUpdated}
+                    severity="success"
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    <div>
+                        Course Schedule updated!
                     </div>
                 </Alert>
             </Snackbar>

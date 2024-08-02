@@ -96,6 +96,7 @@ const generate_combinations = (ref_output, add_output) => {
     console.log(add_result.slice(0, 5));
     return result;
 };
+
 // function to return course order (through ref) and additional output (course code) from user_input
 const find_combinations = (course_ls, ref_prereq, course_ref, course_prereq) => {
     let q = [];

@@ -201,6 +201,13 @@ function Main() {
                     courseswap_ls.push(...editedList[ref][1].courses_swap);
                 };
             };
+            function areSetsEqual(setA, setB) {
+                if (setA.size !== setB.size) return false;
+                for (let item of setA) {
+                    if (!setB.has(item)) return false;
+                }
+                return true;
+            }
             // remove original courses then put in new ones
             const originalRemoved = tableRows.filter((course_object) => !original_ls.includes(course_object.code.trim()));
             const afterRemoved = originalRemoved.map((entry, index) => `${entry.code.trim()} - ${entry.name.trim()}`);
@@ -218,9 +225,17 @@ function Main() {
             const refSwap_set = new Set(refSwap);
             refSwap = Array.from(refSwap_set); // ensure that there are no duplicate entries
             const course_ls = [...afterRemoved, ...refSwap];
-            const course_values = course_ls.reduce((acc, course, index) => { acc[index] = course; return acc; }, {});
-            console.log('Course values:', course_values);
-            const data = await update_selection(course_values); // returned in order ls based on suggestion for course order, ref_prereq, course_prereq
+            const initial_set = new Set(prereqList);
+            const new_set = new Set(course_ls);
+            const result = areSetsEqual(initial_set, new_set);
+            let data = [];
+            if (!result) { // only use expanded course list if there are differences between initial suggestion and user edited course ls
+                const course_values = course_ls.reduce((acc, course, index) => { acc[index] = course; return acc; }, {});
+                console.log('Course values:', course_values);
+                data = await update_selection(course_values); // returned in order ls based on suggestion for course order, ref_prereq, course_prereq
+            } else {
+                data = await update_selection(courseValues); // use original course values
+            };
             const suggestion = data.payload[0];
             const ref_prereq = data.payload[1];
             const course_prereq = data.payload[2];
@@ -261,7 +276,7 @@ function Main() {
                 setMissingCourses(missing_courses);
 
                 console.log('New rows (before removal of courses):', newTableRows);
-                if (taken_ls.length > 0 || refswap_ls.length > 0 || tableRows.length !== newTableRows.length) {
+                if (taken_ls.length > 0 || refswap_ls.length > 0) {
                     setOpenCourseUpdated(true);
                 };
             } catch (error) {

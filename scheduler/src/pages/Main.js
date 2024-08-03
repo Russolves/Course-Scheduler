@@ -800,7 +800,7 @@ function Main() {
                     })}
                 </Stepper>
             </Box>
-            <h1 className='main-title' style={{ display: 'flex', justifyContent: 'center' }}>BME course scheduler</h1>
+            <h1 className='main-title' style={{ display: 'flex', justifyContent: 'center' }}>Purdue course scheduler</h1>
             <div className={`step-container ${slideDirection}`}>
                 {getStepContent(activeStep)}
             </div>

@@ -1,4 +1,4 @@
-const khan_algorithm = (ref_prereq, ref_output, course_ls) => {
+const custom_algorithm = (ref_prereq, ref_output, course_ls) => {
     let adj = [];
     // Helper function to find the best prerequisite combination
     const findBestPrereq = (prereqs, course_ls) => {
@@ -68,7 +68,7 @@ const topological_sort = (course_ls, ref_prereq, course_ref, course_prereq) => {
     const add_output = output[1];
     // const all_combinations = generate_combinations(ref_output, add_output);
     // console.log('All combinations:', all_combinations.slice(0, 5));
-    if (ref_output !== undefined) return [khan_algorithm(ref_prereq, ref_output, course_ls), ref_output, add_output]; // return based on user_input course order, ref_prereq, course_prereq in that order
+    if (ref_output !== undefined) return [custom_algorithm(ref_prereq, ref_output, course_ls), ref_output, add_output]; // return based on user_input course order, ref_prereq, course_prereq in that order
 };
 
 // recursive function for dps on course combinations
@@ -128,6 +128,6 @@ const find_combinations = (course_ls, ref_prereq, course_ref, course_prereq) => 
     return [output, add_ref]; // return output and add_ref
 };
 module.exports = {
-    khan_algorithm,
+    custom_algorithm,
     topological_sort
 };

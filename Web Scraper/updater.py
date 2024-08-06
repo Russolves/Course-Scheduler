@@ -76,6 +76,7 @@ def update_courses(client, reference_ls):
                 }
             result = collection.update_one(filter, update, upsert = True) # Upsert into course_reference
         missing_ls = list(set(missing_ls))
+        print(f"Number of missing courses from db: {len(missing_ls)}")
         return missing_ls
     except Exception as e:
         print(f"Something went wrong during update_courses: {e}")

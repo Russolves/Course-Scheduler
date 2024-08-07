@@ -76,8 +76,8 @@ Integrates body parsing for seamless data transfer between frontend and backend
 ### 3. Algorithm Implementation
 Utilizes Directed Acyclic Graphs (DAGs) to model course prerequisites
 Implements a custom topological sorting algorithm for optimal course sequencing
-Employs a hybrid Depth-First Search (DFS) and Breadth-First Search (BFS) approach for comprehensive prerequisite traversal
-Incorporates dynamic programming techniques to optimize prerequisite combinations
+Employs a hybrid Depth-First Search (DFS) and Breadth-First Search (BFS) approach for exploring prerequisite combinations
+Incorporates dynamic programming techniques to optimize the process of generating combinations
 
 ### 4. Database Integration
 Utilizes NoSQL MongoDB for flexible, document-based data storage

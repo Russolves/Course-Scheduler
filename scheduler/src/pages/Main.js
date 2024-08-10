@@ -322,7 +322,6 @@ function Main() {
     };
 
     const handleSkip = () => {
-        showQuestion();
         if (!isStepOptional(activeStep)) {
             // You probably want to guard against something like this,
             // it should never occur unless someone's actively trying to break something.
@@ -336,6 +335,7 @@ function Main() {
             newSkipped.add(activeStep);
             return newSkipped;
         });
+        showQuestion();
     };
     const handleReset = () => { // to reset progress of stepper
         setActiveStep(0);

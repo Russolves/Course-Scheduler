@@ -464,6 +464,7 @@ function Main() {
                 return "Unknown Step\nSomething went wrong in activeSteps";
         }
     };
+
     // stepper styles
     const connectorColor = '#D4A017';
     const iconColor = '#000000'

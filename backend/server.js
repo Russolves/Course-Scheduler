@@ -13,7 +13,7 @@ const mongo_cluster = process.env.MONGO_CLUSTER;
 const mongo_database = process.env.MONGO_DATABASE;
 const mongo_collection = process.env.MONGO_COLLECTION;
 
-// MongoDB
+// MongoD
 const uri = `mongodb+srv://${mongo_username}:${mongo_password}@${mongo_cluster}/?retryWrites=true&w=majority&appName=Cluster0`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {

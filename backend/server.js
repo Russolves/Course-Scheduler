@@ -29,7 +29,7 @@ let ref_prereq = {}; // {reference: [prereq1code, prereq2code...]}
 let course_prereq = {}; // unlike the previous entry, this one is with course names {reference: [prereq1course, prereq2course....]}
 let courses_return = []; // for API
 
-// initial run to ensure server is connected to MongoDB
+// initial run to ensure server is connected to MongoDB database
 async function run() {
     let data = [];
     try {

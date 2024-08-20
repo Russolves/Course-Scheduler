@@ -7,7 +7,7 @@ services:
       - ./backend:/usr/src/app
     environment:
       NODE_ENV: development
-    command: npm run dev
+    command: npm run dev # Runs backend in dev mode
 
   frontend:
     build: ./scheduler

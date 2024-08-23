@@ -2,7 +2,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "2000:2000"
+      - "2000:2000" # exposing port 2000 for backend
     volumes:
       - ./backend:/usr/src/app
     environment:
@@ -10,7 +10,7 @@ services:
     command: npm run dev # Runs backend in dev mode
 
   frontend:
-    build: ./scheduler
+    build: ./scheduler # use Dockerfile located in directory for build
     ports:
       - "3000:3000"
     volumes:

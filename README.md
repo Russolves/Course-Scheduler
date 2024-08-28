@@ -44,7 +44,7 @@ Then you'll need to configure and set up a MongoDB collection in order to import
 mongoimport --uri mongodb+srv://<MONGO_USERNAME>:<MONGO_PASSWORD>@<MONGO_CLUSTER>/<MONGO_DATABASE> --collection <MONGO_COLLECTION> --file database.json --jsonArray
 ```
 ### 3. Configuring the .env file in backend
-Create a '.env' file in the 'backend' directory with the following variable
+Create a '.env' file in the 'backend' directory with the following variables
 ```
 MONGO_USERNAME=your_mongo_username
 MONGO_PASSWORD=your_mongo_password

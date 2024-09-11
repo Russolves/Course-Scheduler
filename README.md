@@ -1,6 +1,6 @@
 # Course Scheduler
 
-Welcome to the Purdue Course Scheduler project! This application helps Purdue students mapout prerequisites and schedule courses efficiently. The project is built using the MERN stack (MongoDB, Express, React, Node.js) and utilizes Docker for containerization. Below you will find the setup instructions to get the project up and running.
+Welcome to the Purdue Course Scheduler project! This application helps Purdue students mapout prerequisites and schedule courses efficiently. The project is built using the MERN stack (MongoDB, Express, React, Node.js) and utilizes Docker for containerization. Below you will find the setup instructions to get the project up and running
 
 ## **Table of Contents**
 
